@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tobalina Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Red+Rose:wght@300&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --dark:#232E2C;--mid:#6F807E;--light:#D4DCDB;--bg:#FAF9F7;--card:#fff;
+  --accent:#E8A87C;--green:#4CAF82;--orange:#E8A87C;--red:#D45F5F;
+  --ta:#3B5CE6;--tb:#BF4810;--tc:#664DCC;
+  --sh:0 1px 3px rgba(35,46,44,.06),0 4px 16px rgba(35,46,44,.06);
+  --r:8px;--sb:220px;--f:'Inter',system-ui,sans-serif;
+  --sidebar-bg:#3A3F3E;--sidebar-border:rgba(255,255,255,.07);--sidebar-text:rgba(255,255,255,.55);--sidebar-active:#fff;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--dark);font-size:14px;overflow:hidden}
+button{cursor:pointer;font-family:var(--f);border:none;background:none}
+input,textarea,select{font-family:var(--f);font-size:14px}
+
+/* LAYOUT */
+#app{display:flex;height:100vh;overflow:hidden}
+#sidebar{width:var(--sb);min-width:var(--sb);background:var(--sidebar-bg);color:#fff;display:flex;flex-direction:column;transition:transform .25s;z-index:50}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* SIDEBAR */
+.s-logo{padding:22px 20px 16px;border-bottom:1px solid var(--sidebar-border)}
+.s-wm{font-family:'Red Rose',serif;font-weight:300;font-size:20px;letter-spacing:.04em;color:#fff;line-height:1}
+.s-sub{font-size:8px;font-weight:500;letter-spacing:.2em;color:var(--sidebar-text);margin-top:4px;text-transform:uppercase}
+.s-stats{padding:14px 20px;border-bottom:1px solid var(--sidebar-border)}
+.ss-r{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.ss-r:last-child{margin-bottom:0}
+.ss-l{font-size:8px;font-weight:600;letter-spacing:.12em;color:var(--sidebar-text);text-transform:uppercase}
+.ss-v{font-size:16px;font-weight:300;color:#fff}
+.ss-v.ac{color:var(--accent)}
+.s-nav{padding:8px 0;flex:1;overflow-y:auto}
+.nav-section{padding:10px 20px 4px;font-size:7px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.25);text-transform:uppercase}
+.nav-i{display:flex;align-items:center;gap:10px;padding:8px 20px;font-size:12px;font-weight:500;color:var(--sidebar-text);cursor:pointer;transition:all .15s;border-left:2px solid transparent;position:relative}
+.nav-i:hover{color:#fff;background:rgba(255,255,255,.05)}
+.nav-i.active{color:var(--sidebar-active);border-left-color:var(--accent);background:rgba(255,255,255,.07)}
+.nav-i.sub{padding-left:36px;font-size:11px}
+.nav-ic{font-size:12px;width:14px;text-align:center;flex-shrink:0}
+.s-foot{padding:14px 20px;border-top:1px solid var(--sidebar-border);font-size:8px;color:rgba(255,255,255,.25);letter-spacing:.06em;line-height:1.6}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;gap:10px;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--light);flex-shrink:0}
+.tb-menu{display:none;font-size:18px;color:var(--mid);padding:4px 6px;border-radius:4px}
+.tb-title{font-size:14px;font-weight:600;flex:1;color:var(--dark)}
+.tb-actions{display:flex;gap:6px;align-items:center}
+.btn-p{background:var(--dark);color:#fff;padding:7px 14px;border-radius:var(--r);font-size:11px;font-weight:600;letter-spacing:.04em;transition:opacity .15s;white-space:nowrap}
+.btn-p:hover{opacity:.82}
+.btn-g{color:var(--mid);padding:6px 10px;border-radius:var(--r);font-size:11px;font-weight:500;transition:all .15s;white-space:nowrap}
+.btn-g:hover{background:var(--bg);color:var(--dark)}
+.btn-sm{font-size:10px;padding:5px 9px}
+
+/* CONTENT */
+#content{flex:1;overflow:auto;padding:22px 24px}
+
+/* KANBAN — card-first, no Monday-style thin lines */
+#vk{display:flex;gap:14px;height:100%;align-items:flex-start;padding-bottom:14px}
+.kc{flex:1;min-width:170px;max-width:240px;background:transparent;border-radius:var(--r);display:flex;flex-direction:column;max-height:100%}
+.kc-h{padding:0 4px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--light);margin-bottom:10px}
+.kc-t{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mid)}
+.kc-n{font-size:10px;font-weight:600;background:var(--light);color:var(--mid);border-radius:20px;padding:1px 7px;min-width:20px;text-align:center}
+.kc-cards{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;min-height:60px;padding:2px}
+.kc-cards.dov{outline:2px dashed var(--accent);outline-offset:2px;border-radius:var(--r)}
+
+/* CARD — generous, airy, not list-style */
+.card{background:var(--card);border-radius:var(--r);padding:14px;box-shadow:var(--sh);cursor:grab;transition:box-shadow .15s,transform .12s;border-left:3px solid var(--light);position:relative;user-select:none}
+.card:hover{box-shadow:0 6px 24px rgba(35,46,44,.11);transform:translateY(-1px)}
+.card.dragging{opacity:.4;transform:rotate(1deg) scale(.97)}
+.card.todo-card{border-left-color:var(--light);opacity:.85}
+.c-header{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:6px}
+.c-client{font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mid)}
+.tb{font-size:7px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.06em;flex-shrink:0}
+.ta{background:#EBF0FF;color:var(--ta)}.tb_{background:#FFF3E8;color:var(--tb)}.tc{background:#F2EFFF;color:var(--tc)}.tm{background:#F0F0F0;color:#555}.ttd{background:#EBEBEB;color:#888}
+.c-name{font-size:13px;font-weight:600;line-height:1.35;margin-bottom:10px;color:var(--dark)}
+/* deadline ring — circular pct indicator */
+.c-footer{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.c-dl{font-size:9px;font-weight:600;color:var(--mid)}
+.c-dl.urgent{color:var(--red)}.c-dl.warning{color:var(--orange)}
+.c-price{font-size:12px;font-weight:600;color:var(--dark)}
+.c-progress{width:100%;height:3px;background:var(--light);border-radius:2px;margin-bottom:8px;overflow:hidden}
+.c-progress-fill{height:100%;border-radius:2px}
+.c-progress-fill.safe{background:var(--green)}.c-progress-fill.warning{background:var(--orange)}.c-progress-fill.urgent{background:var(--red)}
+.c-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px}
+.c-tag{font-size:8px;font-weight:600;padding:2px 6px;border-radius:4px;background:var(--bg);color:var(--mid)}
+.c-tag.ppt{background:#FFF0EB;color:#C94A1A}.c-tag.pdf{background:#FFF0F0;color:#C41A1A}.c-tag.xls{background:#EDFFF5;color:#1A7A42}
+.c-eph{font-size:9px;font-weight:500;margin-top:5px;padding-top:5px;border-top:1px solid var(--bg);color:var(--mid)}
+.c-eph span{font-weight:700}
+.c-eph .good{color:var(--green)}.c-eph .bad{color:var(--red)}
+.c-acts{position:absolute;top:10px;right:10px;display:none;gap:3px}
+.card:hover .c-acts{display:flex}
+.c-ab{font-size:10px;padding:3px 5px;border-radius:4px;color:var(--mid);background:var(--bg);transition:all .1s}
+.c-ab:hover{background:var(--light);color:var(--dark)}
+.empty-c{padding:20px 8px;text-align:center;color:var(--light)}
+.empty-c div{font-size:11px;color:var(--mid);margin-top:4px}
+
+/* LIST */
+#vl{display:none}
+.lt{width:100%;border-collapse:collapse}
+.lt th{text-align:left;font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mid);padding:7px 12px;border-bottom:2px solid var(--dark);cursor:pointer;white-space:nowrap}
+.lt th:hover{color:var(--dark)}
+.lt td{padding:10px 12px;border-bottom:1px solid var(--light);font-size:12px;vertical-align:middle}
+.lt tr:hover td{background:rgba(35,46,44,.02)}
+.sp{font-size:8px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.sp-brief{background:#F0F4FF;color:#3B5CE6}.sp-produccion{background:#FFF3E8;color:#BF4810}
+.sp-revision{background:#FFFBE8;color:#A0820A}.sp-entregado{background:#EDFFF5;color:#1A7A42}
+.sp-cobrado{background:rgba(35,46,44,.08);color:var(--mid)}.sp-todo{background:#F0F0EE;color:#888}
+
+/* AGENDA (calendar + timeline) */
+#vc{display:none}
+.agenda-tabs{display:flex;gap:2px;background:var(--bg);border-radius:var(--r);padding:3px;margin-bottom:16px;width:fit-content}
+.agenda-tab{padding:5px 14px;border-radius:6px;font-size:11px;font-weight:600;color:var(--mid);cursor:pointer;transition:all .15s}
+.agenda-tab.active{background:var(--card);color:var(--dark);box-shadow:var(--sh)}
+/* Calendar */
+.cal-nav{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.cal-m{font-size:16px;font-weight:300}
+.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--light);border:1px solid var(--light);border-radius:var(--r);overflow:hidden}
+.cal-dh{background:var(--dark);color:rgba(255,255,255,.55);font-size:8px;font-weight:700;letter-spacing:.1em;text-align:center;padding:8px 2px;text-transform:uppercase}
+.cal-d{background:var(--card);min-height:84px;padding:6px}
+.cal-d.om{background:var(--bg)}.cal-d.tod{outline:2px solid var(--accent);outline-offset:-2px}
+.cal-dn{font-size:10px;font-weight:600;color:var(--mid);margin-bottom:4px}
+.cal-d.tod .cal-dn{color:var(--accent)}
+.cal-ev{font-size:8px;font-weight:600;padding:2px 5px;border-radius:3px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-ev.urgent{background:#FFE8E8;color:var(--red)}.cal-ev.warning{background:#FFF3E8;color:var(--orange)}.cal-ev.safe{background:#EDFFF5;color:var(--green)}
+/* Timeline */
+#tl-wrap{overflow-x:auto;margin-top:8px}
+.tl-t{border-collapse:collapse;min-width:100%}
+.tl-lc{width:170px;min-width:170px;position:sticky;left:0;background:var(--bg);z-index:2}
+.tl-dh{font-size:7px;font-weight:700;color:var(--mid);text-align:center;padding:3px 1px;border-bottom:1px solid var(--light);min-width:26px;white-space:nowrap}
+.tl-dh.tc_{color:var(--accent);font-weight:900}
+.tl-rl{padding:6px 10px 6px 0;font-size:10px;font-weight:600;white-space:nowrap;border-bottom:1px solid var(--light);background:var(--bg)}
+.tl-rc{font-size:8px;color:var(--mid);display:block;font-weight:400}
+.tl-c{border-bottom:1px solid var(--light);padding:2px 1px;min-width:26px}
+.tl-c.tc_{background:rgba(232,168,124,.07)}
+.tl-bw{position:relative;height:22px}
+.tl-b{height:18px;border-radius:4px;position:absolute;top:2px;display:flex;align-items:center;padding:0 6px;font-size:8px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;cursor:pointer;opacity:.88}
+.tl-b:hover{opacity:1}
+.tl-dm{position:absolute;top:0;bottom:0;width:2px;background:var(--red);border-radius:1px;z-index:1}
+.tl-today-line{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);z-index:1}
+
+/* FORECAST */
+#vf{display:none}
+.fc-g{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
+.fc-c{background:var(--card);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
+.fc-ct{font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mid);margin-bottom:10px}
+.fc-cb{font-size:30px;font-weight:300;color:var(--dark);margin-bottom:3px}
+.fc-cs{font-size:10px;color:var(--mid)}
+.fc-br{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.fc-bl{font-size:10px;color:var(--mid);width:80px;text-align:right;flex-shrink:0}
+.fc-bt{flex:1;height:6px;background:var(--light);border-radius:4px;overflow:hidden}
+.fc-bf{height:100%;border-radius:4px}
+.fc-mr{display:flex;align-items:baseline;gap:7px;margin-bottom:5px;padding-bottom:5px;border-bottom:1px solid var(--light)}
+.fc-mr:last-child{border-bottom:none}
+.fc-mn{font-size:10px;font-weight:600;color:var(--dark);width:70px}
+.fc-mb{flex:1;height:5px;background:var(--light);border-radius:3px;overflow:hidden}
+.fc-mf{height:100%;border-radius:3px;background:var(--dark)}
+.fc-mv{font-size:10px;color:var(--mid);width:65px;text-align:right}
+.fc-ins{background:rgba(35,46,44,.04);border-radius:var(--r);padding:12px;margin-bottom:8px;border-left:3px solid var(--accent)}
+.fc-ins p{font-size:11px;line-height:1.6}
+.fc-insl{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:3px}
+
+/* CLIENTS */
+#vcl{display:none}
+.cl-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.cl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.cl-card{background:var(--card);border-radius:var(--r);padding:18px;box-shadow:var(--sh);border-top:3px solid var(--dark)}
+.cl-name{font-size:15px;font-weight:700;margin-bottom:2px}
+.cl-sector{font-size:10px;color:var(--mid);margin-bottom:12px}
+.cl-stats{display:flex;gap:0;margin-bottom:14px;background:var(--bg);border-radius:6px;overflow:hidden}
+.cl-st{flex:1;padding:10px 8px;text-align:center;border-right:1px solid var(--light)}
+.cl-st:last-child{border-right:none}
+.cl-stv{font-size:18px;font-weight:300;color:var(--dark)}
+.cl-stl{font-size:7px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);margin-top:2px}
+.cl-cts{margin-bottom:12px}
+.cl-ctt{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);margin-bottom:7px}
+.cl-person{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--light)}
+.cl-person:last-child{border-bottom:none}
+.cl-av{width:30px;height:30px;border-radius:50%;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.cl-pi{flex:1;min-width:0}
+.cl-pn{font-size:12px;font-weight:600}
+.cl-pe{font-size:10px;color:var(--mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-pr{font-size:9px;color:var(--mid)}
+.cl-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.cl-btn{font-size:10px;font-weight:600;padding:5px 10px;border-radius:var(--r);transition:all .15s;white-space:nowrap;cursor:pointer;border:none}
+.cl-btn-dark{background:var(--dark);color:#fff}.cl-btn-dark:hover{opacity:.85}
+.cl-btn-gm{background:#EA4335;color:#fff}.cl-btn-gm:hover{opacity:.85}
+.cl-btn-ghost{background:transparent;border:1px solid var(--light);color:var(--mid)}.cl-btn-ghost:hover{border-color:var(--dark);color:var(--dark)}
+
+/* SETTINGS */
+#vs{display:none}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:700px}
+.set-card{background:var(--card);border-radius:var(--r);padding:20px;box-shadow:var(--sh)}
+.set-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mid);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--light)}
+.set-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.set-row:last-child{margin-bottom:0}
+.set-label{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mid)}
+.set-input{padding:7px 10px;border:1px solid var(--light);border-radius:var(--r);font-size:13px;color:var(--dark);background:var(--bg);width:100%}
+.set-input:focus{outline:none;border-color:var(--mid);background:#fff}
+.set-save{margin-top:14px;background:var(--dark);color:#fff;padding:8px 16px;border-radius:var(--r);font-size:11px;font-weight:600;width:100%}
+.set-save:hover{opacity:.85}
+
+/* MODAL */
+.ov{position:fixed;inset:0;background:rgba(35,46,44,.45);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;padding:16px}
+.ov.open{opacity:1;pointer-events:all}
+.modal{background:var(--card);border-radius:12px;width:560px;max-width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 80px rgba(35,46,44,.22);transform:translateY(8px);transition:transform .2s}
+.ov.open .modal{transform:translateY(0)}
+.mh{padding:18px 22px;border-bottom:1px solid var(--light);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card);z-index:1}
+.mh-t{font-size:14px;font-weight:600}
+.mb{padding:18px 22px;display:flex;flex-direction:column;gap:13px}
+.mf{padding:13px 22px;border-top:1px solid var(--light);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--card)}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fl{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mid)}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fi{padding:8px 11px;border:1px solid var(--light);border-radius:var(--r);font-size:13px;color:var(--dark);background:var(--bg);transition:border-color .15s;width:100%}
+.fi:focus{outline:none;border-color:var(--mid);background:#fff}
+.fs_{padding:8px 11px;border:1px solid var(--light);border-radius:var(--r);font-size:13px;color:var(--dark);background:var(--bg);width:100%}
+.tsg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tsb{border:1.5px solid var(--light);border-radius:var(--r);padding:10px;transition:border-color .2s,background .2s}
+.tsb.hv{border-color:var(--dark);background:rgba(35,46,44,.02)}
+.tsb-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.tsb-p{font-size:8px;color:var(--mid)}
+.tsb-i{width:100%;padding:6px;border:1px solid var(--light);border-radius:5px;font-size:20px;font-weight:300;text-align:center;color:var(--dark);background:var(--bg)}
+.tsb-i:focus{outline:none;border-color:var(--mid);background:#fff}
+.tsb-d{font-size:8px;color:var(--mid);text-align:center;margin-top:4px}
+.ex-rows{display:flex;flex-direction:column;gap:5px}
+.ex-row{display:grid;grid-template-columns:1fr 50px 80px auto;gap:6px;align-items:center}
+.btn-add-ex{font-size:10px;color:var(--mid);padding:5px 8px;border:1px dashed var(--light);border-radius:5px;width:100%;text-align:center;transition:all .15s}
+.btn-add-ex:hover{border-color:var(--mid);color:var(--dark)}
+.btn-rm{font-size:10px;color:var(--red);padding:3px 6px;border-radius:4px}
+.pp{background:rgba(35,46,44,.04);border-radius:var(--r);padding:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pp-i{text-align:center}
+.pp-l{font-size:7px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mid);margin-bottom:2px}
+.pp-v{font-size:14px;font-weight:600;color:var(--dark)}
+.pp-v.tot{font-size:16px;font-weight:300}
+.hb{background:rgba(35,46,44,.04);border-radius:var(--r);padding:13px;display:flex;flex-direction:column;gap:10px}
+.hb-t{font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mid)}
+.hg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hc{display:flex;flex-direction:column;gap:3px}
+.hc label{font-size:8px;font-weight:600;color:var(--mid);letter-spacing:.06em;text-transform:uppercase}
+.hc input{width:100%;padding:5px 7px;border:1px solid var(--light);border-radius:5px;font-size:18px;font-weight:300;text-align:center;color:var(--dark);background:var(--bg)}
+.hc input:focus{outline:none;border-color:var(--mid);background:#fff}
+.hc .hs{font-size:8px;color:var(--mid);text-align:center}
+.sr{background:var(--dark);color:#fff;border-radius:var(--r);padding:11px 13px;display:flex;flex-direction:column;gap:5px}
+.sr-r{display:flex;justify-content:space-between;align-items:baseline}
+.sr-l{font-size:9px;color:rgba(255,255,255,.5)}
+.sr-v{font-size:12px;font-weight:600;color:#fff}
+.sr-v.ac{color:var(--accent)}
+.sr-w{font-size:9px;color:var(--accent);margin-top:2px}
+.cp-rows{display:flex;flex-direction:column;gap:5px}
+.cp-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:5px;align-items:center}
+
+/* DETAIL PANEL */
+.dov{position:fixed;inset:0;background:rgba(35,46,44,.28);z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}
+.dov.open{opacity:1;pointer-events:all}
+.dp{position:fixed;right:0;top:0;bottom:0;width:400px;max-width:100%;background:var(--card);box-shadow:-6px 0 32px rgba(35,46,44,.1);z-index:91;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+.dov.open .dp{transform:translateX(0)}
+.dp-hd{padding:18px 22px;border-bottom:1px solid var(--light);display:flex;align-items:flex-start;justify-content:space-between}
+.dp-bd{flex:1;overflow-y:auto;padding:18px 22px}
+.ds{margin-bottom:18px}
+.dst{font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mid);margin-bottom:9px}
+.dr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.dk{font-size:11px;color:var(--mid)}
+.dv{font-size:12px;font-weight:500;color:var(--dark)}
+.dn{font-size:12px;color:var(--dark);line-height:1.55;background:var(--bg);padding:9px 11px;border-radius:var(--r)}
+.inv-c{font-size:10px;font-weight:700;letter-spacing:.06em;background:var(--dark);color:#fff;padding:5px 10px;border-radius:5px;display:inline-block;margin-bottom:8px;font-family:monospace}
+.f-est{display:flex;gap:5px;flex-wrap:wrap}
+.f-btn{font-size:9px;font-weight:600;padding:5px 10px;border-radius:var(--r);cursor:pointer;border:1.5px solid var(--light);color:var(--mid);transition:all .15s;background:transparent}
+.f-btn.active{border-color:var(--dark);background:var(--dark);color:#fff}
+.btn-xl{background:#1A7A42;color:#fff;padding:7px 12px;border-radius:var(--r);font-size:11px;font-weight:600;transition:opacity .15s;width:100%;text-align:center;margin-top:5px;display:block;cursor:pointer;border:none}
+.btn-xl:hover{opacity:.85}
+.btn-pdf{background:var(--dark);color:#fff;padding:7px 12px;border-radius:var(--r);font-size:11px;font-weight:600;transition:opacity .15s;width:100%;text-align:center;margin-top:5px;display:block;cursor:pointer;border:none}
+.btn-pdf:hover{opacity:.85}
+.btn-gm{background:#EA4335;color:#fff;padding:7px 12px;border-radius:var(--r);font-size:11px;font-weight:600;transition:opacity .15s;width:100%;text-align:center;margin-top:5px;display:block;cursor:pointer;border:none}
+.btn-gm:hover{opacity:.85}
+.sched{background:var(--bg);border-radius:var(--r);padding:10px 12px;margin-top:5px}
+.dp-ft{padding:13px 22px;border-top:1px solid var(--light);display:flex;gap:6px}
+
+/* INVOICE PRINT TEMPLATE */
+#invoice-print{display:none}
+@media print{
+  body *{display:none!important}
+  #invoice-print{display:block!important;position:fixed;inset:0;background:#fff;z-index:9999;font-family:'Inter',Arial,sans-serif;font-size:10pt;color:#232E2C;padding:28px 32px}
+  .ip-logo{font-family:'Red Rose',Georgia,serif;font-weight:300;font-size:28pt;color:#232E2C;margin-bottom:2px}
+  .ip-sub{font-size:7pt;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:#6F807E;margin-bottom:24px}
+  .ip-meta{display:grid!important;grid-template-columns:1fr 1fr;gap:0;margin-bottom:20px}
+  .ip-emisor,.ip-cliente{padding-right:20px}
+  .ip-section-label{font-size:6.5pt;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#6F807E;margin-bottom:5px}
+  .ip-name{font-size:10pt;font-weight:700;margin-bottom:2px}
+  .ip-line{font-size:9pt;color:#444;margin-bottom:1px}
+  .ip-inv-meta{text-align:right}
+  .ip-inv-label{font-size:7pt;font-weight:600;color:#6F807E;letter-spacing:.1em;text-transform:uppercase}
+  .ip-inv-val{font-size:10pt;font-weight:600;margin-bottom:4px}
+  .ip-rule{height:2px;background:#232E2C;margin:14px 0}
+  .ip-table{width:100%;border-collapse:collapse;margin-bottom:16px}
+  .ip-table th{font-size:7pt;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:#232E2C;padding:6px 8px;text-align:left}
+  .ip-table th.r{text-align:right}
+  .ip-table td{padding:6px 8px;font-size:9pt;border-bottom:1px solid #E0E0E0}
+  .ip-table td.r{text-align:right}
+  .ip-table tr:nth-child(even) td{background:#F5F5F5}
+  .ip-totals{display:grid!important;grid-template-columns:1fr 200px;gap:0}
+  .ip-notes-block{font-size:8.5pt;color:#555;padding-right:20px}
+  .ip-totals-right{border:1px solid #E0E0E0;border-radius:4px;overflow:hidden}
+  .ip-tot-row{display:flex!important;justify-content:space-between;padding:5px 10px;font-size:9pt;border-bottom:1px solid #E0E0E0}
+  .ip-tot-row:last-child{border-bottom:none}
+  .ip-tot-row.total{background:#232E2C;color:#fff;font-weight:700;font-size:11pt}
+  .ip-footer{margin-top:20px;padding-top:10px;border-top:1px solid #C8D0CF;font-size:7.5pt;color:#6F807E;text-align:center}
+}
+
+/* SIDEBAR OVERLAY mobile */
+#sb-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:49}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--dark);color:#fff;padding:9px 18px;border-radius:var(--r);font-size:11px;font-weight:500;z-index:300;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--light);border-radius:3px}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  :root{--sb:250px}
+  #sidebar{position:fixed;top:0;bottom:0;left:0;transform:translateX(-100%)}
+  #sidebar.open{transform:translateX(0)}
+  #sb-ov.open{display:block}
+  .tb-menu{display:block}
+  #content{padding:14px}
+  .fc-g{grid-template-columns:1fr}
+  .tsg{grid-template-columns:1fr 1fr 1fr}
+  .fr{grid-template-columns:1fr}
+  .pp{grid-template-columns:repeat(2,1fr)}
+  .hg{grid-template-columns:1fr 1fr}
+  .cp-row{grid-template-columns:1fr 1fr;row-gap:4px}
+  .cp-row input:nth-child(3){grid-column:1/-1}
+  .ex-row{grid-template-columns:1fr 40px 60px auto}
+  .cl-grid{grid-template-columns:1fr}
+  .settings-grid{grid-template-columns:1fr}
+  #vk{flex-direction:column;height:auto}
+  .kc{width:100%;min-width:0;max-width:none}
+  .dp{width:100%;top:auto;height:88vh;border-radius:14px 14px 0 0;transform:translateY(100%)}
+  .dov.open .dp{transform:translateY(0)}
+  .topbar{padding:10px 14px}
+}
+@media(max-width:480px){
+  .tsg{grid-template-columns:1fr}
+  .hg{grid-template-columns:1fr 1fr}
+  .btn-p{padding:6px 10px;font-size:10px}
+}
+</style>
+</head>
+<body>
+
+<!-- INVOICE PRINT TEMPLATE (hidden, shown on print) -->
+<div id="invoice-print"></div>
+
+<div id="app">
+<div id="sb-ov"></div>
+<aside id="sidebar">
+  <div class="s-logo">
+    <div class="s-wm">TOBALINA</div>
+    <div class="s-sub">Design Studio</div>
+  </div>
+  <div class="s-stats">
+    <div class="ss-r"><span class="ss-l">Cobrado mes</span><span class="ss-v ac" id="s-mes">—</span></div>
+    <div class="ss-r"><span class="ss-l">Pendiente</span><span class="ss-v" id="s-pend">—</span></div>
+    <div class="ss-r"><span class="ss-l">Activos</span><span class="ss-v" id="s-act">—</span></div>
+  </div>
+  <nav class="s-nav">
+    <div class="nav-section">Proyectos</div>
+    <div class="nav-i active" data-view="kanban"><span class="nav-ic">⬛</span>Kanban</div>
+    <div class="nav-i" data-view="list"><span class="nav-ic">☰</span>Lista</div>
+    <div class="nav-section">Tiempo</div>
+    <div class="nav-i" data-view="agenda"><span class="nav-ic">◫</span>Agenda</div>
+    <div class="nav-section">Análisis</div>
+    <div class="nav-i" data-view="forecast"><span class="nav-ic">◈</span>Previsión</div>
+    <div class="nav-section">Contactos</div>
+    <div class="nav-i" data-view="clients"><span class="nav-ic">◉</span>Clientes</div>
+    <div class="nav-section">Config</div>
+    <div class="nav-i" data-view="settings"><span class="nav-ic">⚙</span>Ajustes</div>
+  </nav>
+  <div class="s-foot">IRPF 7% · IVA 21%<br>Madrid · Autónoma &lt;2 años<br>Beatriz Tobalina González</div>
+</aside>
+
+<div id="main">
+  <div class="topbar">
+    <button class="tb-menu" id="btn-menu">☰</button>
+    <span class="tb-title" id="tb-title">Proyectos</span>
+    <div class="tb-actions">
+      <button class="btn-p" id="btn-new">+ Nuevo</button>
+    </div>
+  </div>
+  <div id="content">
+
+    <!-- KANBAN -->
+    <div id="vk">
+      <div class="kc" data-s="brief"><div class="kc-h"><span class="kc-t">Brief</span><span class="kc-n" id="cnt-brief">0</span></div><div class="kc-cards" id="col-brief"></div></div>
+      <div class="kc" data-s="produccion"><div class="kc-h"><span class="kc-t">Producción</span><span class="kc-n" id="cnt-produccion">0</span></div><div class="kc-cards" id="col-produccion"></div></div>
+      <div class="kc" data-s="revision"><div class="kc-h"><span class="kc-t">Revisión</span><span class="kc-n" id="cnt-revision">0</span></div><div class="kc-cards" id="col-revision"></div></div>
+      <div class="kc" data-s="entregado"><div class="kc-h"><span class="kc-t">Entregado</span><span class="kc-n" id="cnt-entregado">0</span></div><div class="kc-cards" id="col-entregado"></div></div>
+      <div class="kc" data-s="cobrado"><div class="kc-h"><span class="kc-t">Cobrado ✓</span><span class="kc-n" id="cnt-cobrado">0</span></div><div class="kc-cards" id="col-cobrado"></div></div>
+      <div class="kc" data-s="todo" style="opacity:.8"><div class="kc-h" style="border-bottom-style:dashed"><span class="kc-t">Gestión</span><span class="kc-n" id="cnt-todo">0</span></div><div class="kc-cards" id="col-todo"></div></div>
+    </div>
+
+    <!-- LIST -->
+    <div id="vl"><table class="lt"><thead><tr>
+      <th data-sort="client">Cliente</th><th data-sort="name">Proyecto</th>
+      <th data-sort="status">Estado</th><th data-sort="deadline">Deadline</th>
+      <th data-sort="base">Precio</th><th>€/h</th><th>Factura</th><th></th>
+    </tr></thead><tbody id="list-body"></tbody></table></div>
+
+    <!-- AGENDA (calendar + timeline) -->
+    <div id="vc">
+      <div class="agenda-tabs">
+        <div class="agenda-tab active" id="ag-tab-cal" onclick="switchAgenda('cal')">Calendario</div>
+        <div class="agenda-tab" id="ag-tab-tl" onclick="switchAgenda('tl')">Timeline</div>
+      </div>
+      <div id="ag-cal">
+        <div class="cal-nav"><button class="btn-g btn-sm" id="cal-prev">← Ant.</button><span class="cal-m" id="cal-lbl"></span><button class="btn-g btn-sm" id="cal-next">Sig. →</button></div>
+        <div class="cal-g" id="cal-g"></div>
+      </div>
+      <div id="ag-tl" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+          <button class="btn-g btn-sm" id="tl-prev">← Ant.</button>
+          <span style="font-size:15px;font-weight:300" id="tl-lbl"></span>
+          <button class="btn-g btn-sm" id="tl-next">Sig. →</button>
+          <div style="display:flex;gap:10px;margin-left:auto;flex-wrap:wrap">
+            <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--mid)"><span style="width:9px;height:9px;border-radius:2px;background:var(--ta);display:inline-block"></span>Tier A</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--mid)"><span style="width:9px;height:9px;border-radius:2px;background:var(--tb);display:inline-block"></span>Tier B</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--mid)"><span style="width:9px;height:9px;border-radius:2px;background:var(--tc);display:inline-block"></span>Tier C</span>
+          </div>
+        </div>
+        <div id="tl-wrap" style="overflow-x:auto"><table class="tl-t" id="tl-t"></table></div>
+      </div>
+    </div>
+
+    <!-- FORECAST -->
+    <div id="vf"><div class="fc-g" id="fc-g"></div><div id="fc-m"></div><div id="fc-i" style="margin-top:16px"></div></div>
+
+    <!-- CLIENTS -->
+    <div id="vcl">
+      <div class="cl-header">
+        <span style="font-size:13px;font-weight:600">Clientes</span>
+        <button class="btn-p" onclick="openClientMod()">+ Nuevo cliente</button>
+      </div>
+      <div class="cl-grid" id="cl-grid"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="vs">
+      <div style="max-width:700px">
+        <div class="settings-grid">
+          <div class="set-card">
+            <div class="set-title">Datos del emisor</div>
+            <div class="set-row"><label class="set-label">Nombre studio / autónoma</label><input class="set-input" id="set-name" placeholder="Tobalina Design - Beatriz Tobalina González"/></div>
+            <div class="set-row"><label class="set-label">NIF</label><input class="set-input" id="set-nif" placeholder="05330271K"/></div>
+            <div class="set-row"><label class="set-label">Dirección fiscal</label><input class="set-input" id="set-addr" placeholder="Calle Tribaldos 38 · 28043 · Madrid, España"/></div>
+            <div class="set-row"><label class="set-label">Email</label><input class="set-input" id="set-email" placeholder="hola@tobalina.studio"/></div>
+            <div class="set-row"><label class="set-label">Web</label><input class="set-input" id="set-web" placeholder="tobalina.studio"/></div>
+            <div class="set-row"><label class="set-label">IBAN</label><input class="set-input" id="set-iban" placeholder="ES00 0000 0000 0000 0000 0000"/></div>
+            <button class="set-save" id="set-save">Guardar datos</button>
+          </div>
+          <div class="set-card">
+            <div class="set-title">Facturación</div>
+            <div class="set-row"><label class="set-label">IRPF (%)</label><input class="set-input" id="set-irpf" type="number" min="0" max="30" value="7" step="1"/></div>
+            <div class="set-row"><label class="set-label">IVA (%)</label><input class="set-input" id="set-iva" type="number" min="0" max="21" value="21" step="1"/></div>
+            <div class="set-row"><label class="set-label">Plazo de pago (días)</label><input class="set-input" id="set-plazo" type="number" min="0" value="30"/></div>
+            <button class="set-save" id="set-save2">Guardar</button>
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--light)">
+              <div class="set-title" style="margin-bottom:8px">Tarifas</div>
+              <div class="set-row"><label class="set-label">Tier A (€/slide)</label><input class="set-input" id="set-ta" type="number" value="25"/></div>
+              <div class="set-row"><label class="set-label">Tier B (€/slide)</label><input class="set-input" id="set-tb" type="number" value="75"/></div>
+              <div class="set-row"><label class="set-label">Tier C (€/slide)</label><input class="set-input" id="set-tc" type="number" value="150"/></div>
+              <button class="set-save" id="set-save3">Guardar tarifas</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- #content -->
+</div><!-- #main -->
+</div><!-- #app -->
+
+<!-- PROJECT MODAL -->
+<div class="ov" id="mov">
+  <div class="modal">
+    <div class="mh"><span class="mh-t" id="m-title">Nuevo proyecto</span><button class="btn-g" id="m-close">✕</button></div>
+    <div class="mb">
+      <div class="fr">
+        <div class="fg"><label class="fl">Cliente *</label><input class="fi" id="f-cl" placeholder="MAPFRE, SAVILLS…"/></div>
+        <div class="fg"><label class="fl">Nombre del proyecto *</label><input class="fi" id="f-nm" placeholder="Presentación Q3…"/></div>
+      </div>
+      <div class="fg"><label class="fl">Contactos del proyecto</label><div class="cp-rows" id="cp-rows"></div><button class="btn-add-ex" id="btn-add-cp">+ Añadir contacto</button></div>
+      <div class="fg">
+        <label class="fl">Slides por tier</label>
+        <div class="tsg">
+          <div class="tsb" id="tsb-a"><div class="tsb-h"><span class="tb ta">TIER A</span><span class="tsb-p" id="ta-lbl">25 €/slide</span></div><input class="tsb-i" id="f-sa" type="number" min="0" placeholder="0"/><div class="tsb-d">Alineación marca</div></div>
+          <div class="tsb" id="tsb-b"><div class="tsb-h"><span class="tb tb_">TIER B</span><span class="tsb-p" id="tb-lbl">75 €/slide</span></div><input class="tsb-i" id="f-sb" type="number" min="0" placeholder="0"/><div class="tsb-d">Corp. structure</div></div>
+          <div class="tsb" id="tsb-c"><div class="tsb-h"><span class="tb tc">TIER C</span><span class="tsb-p" id="tc-lbl">150 €/slide</span></div><input class="tsb-i" id="f-sc" type="number" min="0" placeholder="0"/><div class="tsb-d">Alto impacto</div></div>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Extras</label><div class="ex-rows" id="ex-rows"></div><button class="btn-add-ex" id="btn-add-ex">+ Añadir extra</button></div>
+      <div class="pp">
+        <div class="pp-i"><div class="pp-l">Base</div><div class="pp-v" id="pp-b">0 €</div></div>
+        <div class="pp-i"><div class="pp-l">IVA</div><div class="pp-v" id="pp-i">0 €</div></div>
+        <div class="pp-i"><div class="pp-l">IRPF</div><div class="pp-v" id="pp-r">0 €</div></div>
+        <div class="pp-i"><div class="pp-l">Cobras</div><div class="pp-v tot" id="pp-t">0 €</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div class="fg"><label class="fl">Fecha entrada</label><input class="fi" id="f-st" type="date"/></div>
+        <div class="fg"><label class="fl">Deadline *</label><input class="fi" id="f-dl" type="date"/></div>
+        <div class="fg"><label class="fl">Estado</label><select class="fs_" id="f-es"><option value="brief">Brief recibido</option><option value="produccion">En producción</option><option value="revision">Revisión</option><option value="entregado">Entregado</option><option value="cobrado">Cobrado</option><option value="todo">Gestión</option></select></div>
+      </div>
+      <div class="hb">
+        <div class="hb-t">Tiempo estimado &amp; planificación</div>
+        <div class="hg">
+          <div class="hc"><label>Horas est.</label><input id="f-he" type="number" min="0" step="0.5" placeholder="0"/><span class="hs">Total</span></div>
+          <div class="hc"><label>Horas reales</label><input id="f-hr" type="number" min="0" step="0.5" placeholder="—"/><span class="hs">Al terminar</span></div>
+          <div class="hc"><label>Avance %</label><input id="f-pg" type="number" min="0" max="100" step="5" placeholder="0"/><span class="hs">Completado</span></div>
+        </div>
+        <div class="sr" id="sch-res" style="display:none"></div>
+      </div>
+      <div class="fg"><label class="fl">Notas</label><textarea class="fi" id="f-no" rows="2" style="resize:vertical"></textarea></div>
+      <div class="fg"><label class="fl">Archivos (nombres, separados por coma)</label><input class="fi" id="f-fi" placeholder="brief.pdf, presentacion.pptx"/></div>
+    </div>
+    <div class="mf"><button class="btn-g" id="m-cancel">Cancelar</button><button class="btn-p" id="m-save">Guardar proyecto</button></div>
+  </div>
+</div>
+
+<!-- CLIENT MODAL -->
+<div class="ov" id="cov">
+  <div class="modal" style="width:440px">
+    <div class="mh"><span class="mh-t" id="cm-title">Nuevo cliente</span><button class="btn-g" id="cm-close">✕</button></div>
+    <div class="mb">
+      <div class="fr">
+        <div class="fg"><label class="fl">Nombre empresa *</label><input class="fi" id="cf-nm" placeholder="MAPFRE"/></div>
+        <div class="fg"><label class="fl">Sector</label><input class="fi" id="cf-sec" placeholder="Seguros, Moda…"/></div>
+      </div>
+      <div class="fg"><label class="fl">Notas</label><textarea class="fi" id="cf-no" rows="2" style="resize:vertical"></textarea></div>
+      <div class="fg"><label class="fl">Contactos</label><div class="cp-rows" id="ccf-rows"></div><button class="btn-add-ex" id="btn-add-ccp">+ Añadir contacto</button></div>
+    </div>
+    <div class="mf"><button class="btn-g" id="cm-cancel">Cancelar</button><button class="btn-p" id="cm-save">Guardar cliente</button></div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="dov" id="dov">
+  <div class="dp">
+    <div class="dp-hd">
+      <div><div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);margin-bottom:3px" id="dp-cl"></div><div style="font-size:15px;font-weight:600;line-height:1.3" id="dp-nm"></div></div>
+      <button class="btn-g" id="dp-close">✕</button>
+    </div>
+    <div class="dp-bd">
+      <div class="ds" id="dp-bill-sec">
+        <div class="dst">Facturación</div>
+        <div class="inv-c" id="dp-inv"></div>
+        <div id="dp-bd"></div>
+        <div class="dr" style="margin-top:7px"><span class="dk">Base imponible</span><span class="dv" id="dp-base"></span></div>
+        <div class="dr"><span class="dk" id="dp-iva-label">IVA 21%</span><span class="dv" id="dp-iva"></span></div>
+        <div class="dr"><span class="dk" id="dp-irpf-label">IRPF −7%</span><span class="dv" id="dp-irpf"></span></div>
+        <div class="dr" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--light)"><span class="dk" style="font-weight:700">Total a cobrar</span><span class="dv" style="font-size:18px;font-weight:300" id="dp-tot"></span></div>
+        <div style="margin-top:10px"><div class="dst">Estado pago</div><div class="f-est"><button class="f-btn" id="fs-emitida">Emitida</button><button class="f-btn" id="fs-pendiente">Pendiente</button><button class="f-btn" id="fs-cobrada">Cobrada</button></div></div>
+        <button class="btn-pdf" id="dp-pdf">⎙ Descargar PDF</button>
+        <button class="btn-xl" id="dp-xl">⬇ Descargar XLSX</button>
+      </div>
+      <div class="ds" id="dp-gm-sec">
+        <div class="dst">Contactos del proyecto</div>
+        <div id="dp-cts"></div>
+        <button class="btn-gm" id="dp-gm">✉ Abrir en Gmail</button>
+      </div>
+      <div class="ds">
+        <div class="dst">Proyecto</div>
+        <div class="dr"><span class="dk">Fecha entrada</span><span class="dv" id="dp-st"></span></div>
+        <div class="dr"><span class="dk">Deadline</span><span class="dv" id="dp-dl"></span></div>
+        <div class="dr"><span class="dk">Estado</span><span class="dv" id="dp-es"></span></div>
+      </div>
+      <div class="ds" id="dp-sch-sec"><div class="dst">Tiempo &amp; planificación</div><div class="sched" id="dp-sched"></div></div>
+      <div class="ds" id="dp-f-sec"><div class="dst">Archivos</div><div id="dp-files" style="display:flex;flex-wrap:wrap;gap:4px"></div></div>
+      <div class="ds"><div class="dst">Notas</div><div class="dn" id="dp-notes"></div></div>
+    </div>
+    <div class="dp-ft">
+      <button class="btn-g" id="dp-edit">✎ Editar</button>
+      <button class="btn-g" style="color:var(--red)" id="dp-del">✕ Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONSTANTS & STATE ─────────────────────────────────────
+const STATUSES=['brief','produccion','revision','entregado','cobrado','todo'];
+const SL={brief:'Brief',produccion:'En producción',revision:'Revisión',entregado:'Entregado',cobrado:'Cobrado',todo:'Gestión'};
+const TC_={A:'#3B5CE6',B:'#BF4810',C:'#664DCC',multi:'#888',todo:'#bbb'};
+const VT={kanban:'Proyectos',list:'Lista de proyectos',agenda:'Agenda',forecast:'Previsión de carga',clients:'Clientes',settings:'Ajustes'};
+
+// ── GOOGLE SHEETS SYNC ───────────────────────────────────
+const GAS_URL='https://script.google.com/macros/s/AKfycbwSXGxxuv70fn6x741O8ZeP4s6uiNx0IrCAXScro5oHj3l3Cqa_DUG1FZC4Omdvzu_urg/exec';
+let _saving=false;
+
+async function gasGet(table){
+  try{
+    const r=await fetch(GAS_URL+'?action=get&table='+table);
+    const j=await r.json();
+    return j.data?JSON.parse(j.data):null;
+  }catch(e){console.warn('gasGet',e);return null;}
+}
+
+async function gasSet(table,data){
+  try{
+    const form=new FormData();
+    form.append('action','set');
+    form.append('table',table);
+    form.append('data',JSON.stringify(data));
+    await fetch(GAS_URL+'?action=set&table='+table,{
+      method:'POST',
+      body:JSON.stringify({data:JSON.stringify(data)}),
+      redirect:'follow'
+    });
+  }catch(e){console.warn('gasSet',e);}
+}
+
+function setSyncBadge(msg,col){
+  let el=document.getElementById('sync-badge');
+  if(!el){el=document.createElement('div');el.id='sync-badge';
+    el.style.cssText='position:fixed;bottom:16px;right:16px;font-size:10px;font-weight:600;color:#fff;padding:5px 11px;border-radius:20px;z-index:300;transition:all .4s;pointer-events:none';
+    document.body.appendChild(el);}
+  el.style.background=col||'var(--dark)';el.style.opacity='1';el.textContent=msg;
+  if(col==='var(--green)')setTimeout(()=>el.style.opacity='0',2500);
+}
+
+let projects=[];
+let clients=[];
+let invCtr={};
+let settings_={};
+let curView='kanban',agendaSub='cal';
+let editId=null,detailId=null,editCId=null;
+let calD=new Date(),tlD=new Date();
+let sortCol='deadline',sortAsc=true;
+let extras=[],contacts=[],cContacts=[];
+
+
+
+function save(){
+  // Keep localStorage as fast local cache
+  localStorage.setItem('tbln_p',JSON.stringify(projects));
+  localStorage.setItem('tbln_cl',JSON.stringify(clients));
+  localStorage.setItem('tbln_ic',JSON.stringify(invCtr));
+  localStorage.setItem('tbln_set',JSON.stringify(settings_));
+  // Async sync to Google Sheets
+  clearTimeout(window._saveTimer);
+  window._saveTimer=setTimeout(async()=>{
+    setSyncBadge('Guardando…','#6F807E');
+    await gasSet('proyectos',projects);
+    await gasSet('clientes',clients);
+    await gasSet('invoiceCounter',invCtr);
+    await gasSet('ajustes',settings_);
+    setSyncBadge('✓ Guardado en Drive','var(--green)');
+  },1200);
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+const fe=n=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(n||0);
+const fd=d=>{if(!d)return'—';return new Date(d+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'});};
+const dl_=d=>{if(!d)return null;const a=new Date(d+'T12:00:00'),b=new Date();b.setHours(0,0,0,0);return Math.round((a-b)/86400000);};
+const urg=d=>{if(d===null)return'safe';if(d<0||d<=7)return'urgent';if(d<=14)return'warning';return'safe';};
+const ft=n=>{const e=n.split('.').pop().toLowerCase();if(['ppt','pptx'].includes(e))return'ppt';if(e==='pdf')return'pdf';if(['xls','xlsx'].includes(e))return'xls';return'other';};
+const uid=()=>'p'+Date.now()+Math.random().toString(36).slice(2,5);
+const cb=p=>{
+  const ta=settings_.ta||25,tb=settings_.tb||75,tc=settings_.tc||150;
+  const s=(parseInt(p.slidesA)||0)*ta+(parseInt(p.slidesB)||0)*tb+(parseInt(p.slidesC)||0)*tc;
+  const ex=(p.extras||[]).reduce((a,e)=>a+(parseFloat(e.price)||0)*(parseInt(e.qty)||1),0);
+  return s+ex;
+};
+const mt=p=>{const a=parseInt(p.slidesA)||0,b=parseInt(p.slidesB)||0,c=parseInt(p.slidesC)||0;const n=[a>0,b>0,c>0].filter(Boolean).length;if(p.status==='todo')return'todo';if(n>1)return'multi';if(c>0)return'C';if(b>0)return'B';if(a>0)return'A';return'B';};
+const gi=cl=>{const y=new Date().getFullYear();const k=y+'_'+cl.toUpperCase().replace(/\s+/g,'_');if(!invCtr[k])invCtr[k]=0;invCtr[k]++;return`TBLN-${y}-${cl.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8)}-${String(invCtr[k]).padStart(3,'0')}`;};
+
+// ── SCHEDULE ─────────────────────────────────────────────
+function calcSch(he,hr,pg,dl){
+  if(!he||he<=0)return null;
+  const pct=Math.min(100,Math.max(0,parseFloat(pg)||0));
+  const done=hr>0?Math.min(he,parseFloat(hr)):he*(pct/100);
+  const rem=Math.max(0,he-done);
+  if(rem<=0)return{he,rem:0,fin:new Date(),days:0,ok:true,pct};
+  const today=new Date();today.setHours(0,0,0,0);
+  let left=rem,days=0,fin=new Date(today);
+  for(let i=0;i<365&&left>0;i++){const d=new Date(today);d.setDate(d.getDate()+i);const w=d.getDay();left-=(w===0||w===6)?8:2;days=i+1;fin=new Date(d);}
+  const ok=dl?fin<=new Date(dl+'T12:00:00'):true;
+  return{he,rem,fin,days,ok,pct};
+}
+
+// ── SEED DATA ────────────────────────────────────────────
+function loadSeedData(){
+  const d=o=>{const x=new Date();x.setDate(x.getDate()+o);return x.toISOString().slice(0,10);};
+  clients=[
+    {id:'c1',name:'SAVILLS',sector:'Inmobiliaria',notes:'Cliente principal. Equipo de marketing en Madrid.',contacts:[{name:'María García',email:'mgarcia@savills.es',role:'Marketing Director'},{name:'Carlos Ruiz',email:'cruiz@savills.es',role:'Brand Manager'}]},
+    {id:'c2',name:'INDITEX',sector:'Moda / Retail',notes:'Proyectos de sostenibilidad y comunicación.',contacts:[{name:'Ana López',email:'alopez@inditex.com',role:'Sustainability Lead'},{name:'Javier Mora',email:'jmora@inditex.com',role:'Comms Manager'}]},
+    {id:'c3',name:'MAPFRE',sector:'Seguros',notes:'Presentaciones de producto para equipo comercial.',contacts:[{name:'Elena Vega',email:'evega@mapfre.com',role:'Brand Manager'}]},
+    {id:'c4',name:'BBVA',sector:'Banca',notes:'Resultados anuales e informes trimestrales.',contacts:[{name:'Diego Santos',email:'dsantos@bbva.com',role:'Head of IR'},{name:'Sofía Herrero',email:'sherrero@bbva.com',role:'Communications'}]},
+    {id:'c5',name:'TELEFÓNICA',sector:'Telecomunicaciones',notes:'Primer proyecto. Potencial alto.',contacts:[{name:'Pablo Ríos',email:'prios@telefonica.com',role:'Marketing Director'}]},
+  ];
+  invCtr={'2026_SAVILLS':2,'2026_INDITEX':1,'2026_MAPFRE':1,'2026_BBVA':2,'2026_TELEFONICA':1};
+  projects=[
+    {id:'p1',client:'SAVILLS',name:'Presentación inversores Q3 2026',slidesA:0,slidesB:10,slidesC:15,extras:[{name:'Sistema de slides',qty:1,price:450}],startDate:d(-12),deadline:d(5),status:'produccion',notes:'Paleta azul marino corporativa. Incluir datos CBRE para benchmarking.',files:['brief_savills.pdf','v1_draft.pptx'],invoiceCode:'TBLN-2026-SAVILLS-001',facturaStatus:'emitida',createdAt:d(-12),hoursEst:28,hoursReal:18,progress:65,contacts:[{name:'María García',email:'mgarcia@savills.es',role:'Marketing Director'}]},
+    {id:'p2',client:'INDITEX',name:'Deck sostenibilidad 2026',slidesA:0,slidesB:18,slidesC:0,extras:[],startDate:d(-22),deadline:d(11),status:'revision',notes:'Métricas ESG del informe anual 2025. Colores Inditex Green.',files:['datos_esg.xlsx','deck_v2.pptx'],invoiceCode:'TBLN-2026-INDITEX-001',facturaStatus:'pendiente',createdAt:d(-22),hoursEst:18,hoursReal:20,progress:90,contacts:[{name:'Ana López',email:'alopez@inditex.com',role:'Sustainability Lead'},{name:'Javier Mora',email:'jmora@inditex.com',role:'Comms Manager'}]},
+    {id:'p3',client:'MAPFRE',name:'Presentación producto Vida Plus',slidesA:12,slidesB:0,slidesC:0,extras:[{name:'Animaciones',qty:1,price:150}],startDate:d(-3),deadline:d(23),status:'brief',notes:'Producto nuevo segmento 35-50 años. Tono cálido.',files:['brief_mapfre.pdf'],invoiceCode:'TBLN-2026-MAPFRE-001',facturaStatus:null,createdAt:d(-3),hoursEst:10,hoursReal:0,progress:0,contacts:[{name:'Elena Vega',email:'evega@mapfre.com',role:'Brand Manager'}]},
+    {id:'p4',client:'SAVILLS',name:'Report trimestral oficinas Madrid Q1',slidesA:0,slidesB:30,slidesC:0,extras:[],startDate:d(-68),deadline:d(-32),status:'cobrado',notes:'Entregado y cobrado sin incidencias.',files:['informe_q1.pptx'],invoiceCode:'TBLN-2026-SAVILLS-002',facturaStatus:'cobrada',createdAt:d(-68),hoursEst:22,hoursReal:26,progress:100,contacts:[{name:'Carlos Ruiz',email:'cruiz@savills.es',role:'Brand Manager'}]},
+    {id:'p5',client:'BBVA',name:'Presentación resultados anuales 2025',slidesA:5,slidesB:20,slidesC:8,extras:[{name:'Urgencia 30%',qty:1,price:1155}],startDate:d(-52),deadline:d(-17),status:'cobrado',notes:'Proyecto urgente. Cerramos bien.',files:[],invoiceCode:'TBLN-2026-BBVA-001',facturaStatus:'cobrada',createdAt:d(-52),hoursEst:35,hoursReal:32,progress:100,contacts:[{name:'Diego Santos',email:'dsantos@bbva.com',role:'Head of IR'}]},
+    {id:'p6',client:'TELEFÓNICA',name:'Deck estrategia digital 2027',slidesA:0,slidesB:8,slidesC:12,extras:[{name:'Sistema de slides',qty:1,price:600}],startDate:d(-5),deadline:d(18),status:'brief',notes:'Primera vez. Reunión kick-off pendiente.',files:['nda_telefonica.pdf'],invoiceCode:'TBLN-2026-TELEFONICA-001',facturaStatus:null,createdAt:d(-5),hoursEst:32,hoursReal:0,progress:0,contacts:[{name:'Pablo Ríos',email:'prios@telefonica.com',role:'Marketing Director'}]},
+    {id:'p7',client:'BBVA',name:'Informe sector bancario Q2 2026',slidesA:0,slidesB:22,slidesC:5,extras:[],startDate:d(-35),deadline:d(-8),status:'entregado',notes:'Pendiente validación final.',files:['borrador_q2.pptx'],invoiceCode:'TBLN-2026-BBVA-002',facturaStatus:'emitida',createdAt:d(-35),hoursEst:20,hoursReal:22,progress:100,contacts:[{name:'Diego Santos',email:'dsantos@bbva.com',role:'Head of IR'},{name:'Sofía Herrero',email:'sherrero@bbva.com',role:'Communications'}]},
+    {id:'td1',client:'GESTIÓN',name:'Pedir certificado de alta autónoma',slidesA:0,slidesB:0,slidesC:0,extras:[],startDate:d(0),deadline:d(3),status:'todo',notes:'Necesario para contrato TELEFÓNICA.',files:[],invoiceCode:null,facturaStatus:null,createdAt:d(0),hoursEst:0,hoursReal:0,progress:0,contacts:[]},
+    {id:'td2',client:'GESTIÓN',name:'Enviar modelo 130 — Q2',slidesA:0,slidesB:0,slidesC:0,extras:[],startDate:d(0),deadline:d(12),status:'todo',notes:'Consultar con gestora antes.',files:[],invoiceCode:null,facturaStatus:null,createdAt:d(0),hoursEst:0,hoursReal:0,progress:0,contacts:[]},
+  ];
+}
+
+// ── STATS ────────────────────────────────────────────────
+function renderStats(){
+  const now=new Date();
+  const mes=projects.filter(p=>{if(!p.createdAt||p.status==='todo')return false;const d=new Date(p.createdAt);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()&&p.facturaStatus==='cobrada';}).reduce((a,p)=>a+cb(p),0);
+  const pend=projects.filter(p=>p.facturaStatus==='emitida'||p.facturaStatus==='pendiente').reduce((a,p)=>a+cb(p),0);
+  const act=projects.filter(p=>['brief','produccion','revision'].includes(p.status)).length;
+  document.getElementById('s-mes').textContent=fe(mes);
+  document.getElementById('s-pend').textContent=fe(pend);
+  document.getElementById('s-act').textContent=act;
+}
+
+// ── CARD ─────────────────────────────────────────────────
+function mkCard(p){
+  const isTd=p.status==='todo';
+  const days=dl_(p.deadline),u=urg(days);
+  const pct=p.status==='cobrado'?100:days===null?50:Math.max(0,Math.min(100,(days/30)*100));
+  const dlTxt=days===null?'Sin fecha':days<0?`${Math.abs(days)}d vencido`:days===0?'Hoy':`${days}d restantes`;
+  const base=cb(p);
+  const tier=mt(p);
+  const tCls={'A':'ta','B':'tb_','C':'tc','multi':'tm','todo':'ttd'}[tier]||'tm';
+  const tLbl={'A':'A','B':'B','C':'C','multi':'A+B+C','todo':'GESTIÓN'}[tier]||tier;
+
+  const div=document.createElement('div');
+  div.className='card'+(isTd?' todo-card':'');
+  div.dataset.id=p.id;div.draggable=true;
+  div.style.borderLeftColor=TC_[tier]||'var(--light)';
+  div.innerHTML=`
+    <div class="c-header">
+      <span class="c-client">${p.client}</span>
+      <span class="tb ${tCls}">${tLbl}</span>
+    </div>
+    <div class="c-name">${p.name}</div>
+    ${!isTd?`<div class="c-progress"><div class="c-progress-fill ${u}" style="width:${pct}%"></div></div>`:''}
+    <div class="c-footer">
+      <span class="c-dl ${u}">${isTd?(p.deadline?'→ '+fd(p.deadline):'Sin límite'):dlTxt}</span>
+      ${!isTd?`<span class="c-price">${fe(base)}</span>`:''}
+    </div>
+    ${p.startDate&&!isTd?`<div style="font-size:8px;color:var(--mid);margin-top:5px">Entrada: ${fd(p.startDate)}</div>`:''}
+    ${p.files&&p.files.length?`<div class="c-tags">${p.files.map(f=>`<span class="c-tag ${ft(f)}">${f.split('.').pop().toUpperCase()}</span>`).join('')}</div>`:''}
+    ${!isTd&&p.hoursEst>0?(()=>{const h=p.hoursReal||p.hoursEst,e=base/h;return`<div class="c-eph"><span class="${e>=50?'good':'bad'}">${fe(e)}/h</span> · ${p.hoursEst}h estimadas</div>`;})():''}
+    <div class="c-acts"><button class="c-ab btn-edit">✎</button><button class="c-ab btn-dtl">→</button></div>`;
+  div.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',p.id);div.classList.add('dragging');});
+  div.addEventListener('dragend',()=>div.classList.remove('dragging'));
+  div.addEventListener('click',e=>{if(e.target.classList.contains('btn-edit')){openMod(p.id);return;}openDetail(p.id);});
+  return div;
+}
+
+// ── KANBAN ───────────────────────────────────────────────
+function renderKanban(){
+  STATUSES.forEach(st=>{
+    const col=document.getElementById(`col-${st}`);
+    const cnt=document.getElementById(`cnt-${st}`);
+    if(!col)return;
+    col.innerHTML='';
+    const ps=projects.filter(p=>p.status===st);
+    cnt.textContent=ps.length;
+    if(!ps.length)col.innerHTML='<div class="empty-c"><div style="font-size:24px;opacity:.15">○</div><div>Sin proyectos</div></div>';
+    else ps.forEach(p=>col.appendChild(mkCard(p)));
+  });
+  document.querySelectorAll('.kc-cards').forEach(col=>{
+    col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('dov');});
+    col.addEventListener('dragleave',()=>col.classList.remove('dov'));
+    col.addEventListener('drop',e=>{e.preventDefault();col.classList.remove('dov');const id=e.dataTransfer.getData('text/plain');const ns=col.id.replace('col-','');const p=projects.find(x=>x.id===id);if(p&&p.status!==ns){p.status=ns;save();render();toast(`→ ${SL[ns]}`);}});
+  });
+}
+
+// ── LIST ─────────────────────────────────────────────────
+function renderList(){
+  const ps=[...projects].sort((a,b)=>{
+    let va=a[sortCol]??'',vb=b[sortCol]??'';
+    if(sortCol==='base'){va=cb(a);vb=cb(b);}
+    return sortAsc?(va>vb?1:-1):(va<vb?1:-1);
+  });
+  document.getElementById('list-body').innerHTML=ps.map(p=>{
+    const base=cb(p);
+    const eph=p.hoursEst>0?fe(base/(p.hoursReal||p.hoursEst))+'/h':'—';
+    return`<tr><td style="font-weight:600">${p.client}</td><td>${p.name}</td><td><span class="sp sp-${p.status}">${SL[p.status]}</span></td><td style="font-size:11px">${fd(p.deadline)}</td><td style="font-weight:600">${p.status!=='todo'?fe(base):'—'}</td><td style="font-size:10px;color:var(--mid)">${eph}</td><td style="font-size:9px;font-family:monospace;color:var(--mid)">${p.invoiceCode||'—'}</td><td><button class="btn-g" style="font-size:10px;padding:3px 7px" onclick="openDetail('${p.id}')">→</button></td></tr>`;
+  }).join('');
+}
+document.querySelectorAll('.lt th[data-sort]').forEach(th=>{th.addEventListener('click',()=>{const c=th.dataset.sort;if(sortCol===c)sortAsc=!sortAsc;else{sortCol=c;sortAsc=true;}renderList();});});
+
+// ── AGENDA ───────────────────────────────────────────────
+function switchAgenda(sub){
+  agendaSub=sub;
+  document.getElementById('ag-cal').style.display=sub==='cal'?'block':'none';
+  document.getElementById('ag-tl').style.display=sub==='tl'?'block':'none';
+  document.getElementById('ag-tab-cal').classList.toggle('active',sub==='cal');
+  document.getElementById('ag-tab-tl').classList.toggle('active',sub==='tl');
+  if(sub==='cal')renderCal();else renderTL();
+}
+
+function renderCal(){
+  const y=calD.getFullYear(),m=calD.getMonth();
+  document.getElementById('cal-lbl').textContent=new Date(y,m,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'});
+  const g=document.getElementById('cal-g');
+  const days=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  let h=days.map(d=>`<div class="cal-dh">${d}</div>`).join('');
+  let dow=new Date(y,m,1).getDay();if(dow===0)dow=7;
+  const dim=new Date(y,m+1,0).getDate(),prev=new Date(y,m,0).getDate();
+  const tod=new Date();tod.setHours(0,0,0,0);
+  for(let i=1;i<dow;i++)h+=`<div class="cal-d om"><div class="cal-dn">${prev-dow+i+1}</div></div>`;
+  for(let d=1;d<=dim;d++){
+    const dt=new Date(y,m,d);const isT=dt.getTime()===tod.getTime();
+    const ds=dt.toISOString().slice(0,10);
+    const evs=projects.filter(p=>p.deadline===ds&&p.status!=='cobrado');
+    h+=`<div class="cal-d${isT?' tod':''}"><div class="cal-dn">${d}</div>${evs.map(p=>`<div class="cal-ev ${urg(dl_(p.deadline))}" onclick="openDetail('${p.id}')">${p.client}: ${p.name.slice(0,14)}</div>`).join('')}</div>`;
+  }
+  const rem=(dow-1+dim)%7===0?0:7-(dow-1+dim)%7;
+  for(let i=1;i<=rem;i++)h+=`<div class="cal-d om"><div class="cal-dn">${i}</div></div>`;
+  g.innerHTML=h;
+}
+document.getElementById('cal-prev').addEventListener('click',()=>{calD.setMonth(calD.getMonth()-1);renderCal();});
+document.getElementById('cal-next').addEventListener('click',()=>{calD.setMonth(calD.getMonth()+1);renderCal();});
+
+function renderTL(){
+  const DAYS=42;const start=new Date(tlD);start.setDate(start.getDate()-start.getDay()+1);
+  const end=new Date(start);end.setDate(end.getDate()+DAYS-1);
+  document.getElementById('tl-lbl').textContent=start.toLocaleDateString('es-ES',{day:'numeric',month:'short'})+' — '+end.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});
+  const tod=new Date();tod.setHours(0,0,0,0);
+  let hh=`<colgroup><col style="width:170px"/>${'<col style="min-width:26px"/>'.repeat(DAYS)}</colgroup><thead><tr><th class="tl-lc" style="border-bottom:1px solid var(--light);padding:5px 8px 5px 0;font-size:8px;font-weight:700;color:var(--mid)">PROYECTO</th>`;
+  for(let i=0;i<DAYS;i++){const d=new Date(start);d.setDate(d.getDate()+i);const isT=d.getTime()===tod.getTime();const lbl=i===0||d.getDate()===1?d.toLocaleDateString('es-ES',{day:'numeric',month:'short'}):isT?'●':d.getDate()%7===1?d.getDate()+'':'';hh+=`<th class="tl-dh${isT?' tc_':''}">${lbl}</th>`;}
+  hh+='</tr></thead>';
+  const ps=projects.filter(p=>p.status!=='cobrado'&&p.status!=='todo');
+  let body='<tbody>';
+  if(!ps.length)body+=`<tr><td colspan="${DAYS+1}" style="padding:40px;text-align:center;color:var(--mid)">Sin proyectos activos</td></tr>`;
+  ps.forEach(p=>{
+    const tier=mt(p);const col=TC_[tier]||'#888';const base=cb(p);
+    const pS=p.startDate?new Date(p.startDate+'T12:00:00'):new Date(tod);
+    const pE=p.deadline?new Date(p.deadline+'T12:00:00'):new Date(tod.getTime()+14*86400000);
+    body+=`<tr><td class="tl-rl"><span>${p.name.slice(0,22)}</span><span class="tl-rc">${p.client} · ${fe(base)}</span></td>`;
+    for(let i=0;i<DAYS;i++){
+      const d=new Date(start);d.setDate(d.getDate()+i);const isT=d.getTime()===tod.getTime();
+      const isDl=p.deadline&&d.toISOString().slice(0,10)===p.deadline;
+      const inR=d>=pS&&d<=pE;
+      let bar='';
+      if(inR){const isF=i===0||new Date(start.getTime()+i*86400000-86400000)<pS;const isL=i===DAYS-1||new Date(start.getTime()+i*86400000+86400000)>pE||isDl;bar=`<div class="tl-bw"><div class="tl-b" style="background:${col};left:0;right:0;border-radius:${isF?'4px':0} ${isL?'4px':0} ${isL?'4px':0} ${isF?'4px':0}" onclick="openDetail('${p.id}')" title="${p.name}">${isF?p.client.slice(0,6):''}</div>${isDl?`<div class="tl-dm"></div>`:''}</div>`;}
+      else if(isDl)bar=`<div class="tl-bw"><div class="tl-dm"></div></div>`;
+      body+=`<td class="tl-c${isT?' tc_':''}">${bar}</td>`;
+    }
+    body+='</tr>';
+  });
+  document.getElementById('tl-t').innerHTML=hh+body+'</tbody>';
+}
+document.getElementById('tl-prev').addEventListener('click',()=>{tlD.setDate(tlD.getDate()-21);renderTL();});
+document.getElementById('tl-next').addEventListener('click',()=>{tlD.setDate(tlD.getDate()+21);renderTL();});
+
+// ── FORECAST ─────────────────────────────────────────────
+function renderForecast(){
+  const now=new Date();
+  const done=projects.filter(p=>p.facturaStatus==='cobrada'||p.status==='cobrado');
+  const mRev={};
+  for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const k=d.toLocaleDateString('es-ES',{month:'short',year:'2-digit'});mRev[k]=0;}
+  done.forEach(p=>{if(!p.createdAt)return;const d=new Date(p.createdAt);const k=d.toLocaleDateString('es-ES',{month:'short',year:'2-digit'});if(k in mRev)mRev[k]+=cb(p);});
+  const rv=Object.values(mRev);
+  const avg=rv.reduce((a,b)=>a+b,0)/Math.max(rv.filter(v=>v>0).length,1);
+  const avgP=projects.length/6;
+  const sorted=projects.filter(p=>p.createdAt).sort((a,b)=>a.createdAt.localeCompare(b.createdAt));
+  let avgG=14;
+  if(sorted.length>1){const gs=[];for(let i=1;i<sorted.length;i++)gs.push(Math.abs((new Date(sorted[i].createdAt)-new Date(sorted[i-1].createdAt))/86400000));avgG=Math.round(gs.reduce((a,b)=>a+b,0)/gs.length);}
+  const cC={};projects.forEach(p=>{cC[p.client]=(cC[p.client]||0)+1;});
+  const top=Object.entries(cC).sort((a,b)=>b[1]-a[1])[0];
+  const tV={A:0,B:0,C:0};projects.forEach(p=>{tV.A+=(parseInt(p.slidesA)||0);tV.B+=(parseInt(p.slidesB)||0);tV.C+=(parseInt(p.slidesC)||0);});
+  const tT=tV.A+tV.B+tV.C||1;
+  const p3=avg*3,iva=settings_.iva/100,irpf=settings_.irpf/100;
+  const p3t=p3+p3*iva-p3*irpf;
+  document.getElementById('fc-g').innerHTML=`
+    <div class="fc-c"><div class="fc-ct">Media mensual cobrado</div><div class="fc-cb">${fe(avg)}</div><div class="fc-cs">Últimos 6 meses</div></div>
+    <div class="fc-c"><div class="fc-ct">Proyección 3 meses</div><div class="fc-cb">${fe(p3t)}</div><div class="fc-cs">Total cobrar incl. IVA − IRPF</div></div>
+    <div class="fc-c"><div class="fc-ct">Proyectos / mes</div><div class="fc-cb">${avgP.toFixed(1)}</div><div class="fc-cs">Cliente frecuente: ${top?top[0]:'—'}</div></div>
+    <div class="fc-c"><div class="fc-ct">Cadencia media</div><div class="fc-cb">${avgG}d</div><div class="fc-cs">Entre entrada de proyectos</div></div>`;
+  const maxR=Math.max(...rv,1);
+  const mBars=Object.entries(mRev).map(([k,v])=>`<div class="fc-mr"><span class="fc-mn">${k}</span><div class="fc-mb"><div class="fc-mf" style="width:${(v/maxR*100).toFixed(1)}%"></div></div><span class="fc-mv">${fe(v)}</span></div>`).join('');
+  const tBars=['A','B','C'].map(t=>`<div class="fc-br"><span class="fc-bl" style="color:${TC_[t]}">${t}</span><div class="fc-bt"><div class="fc-bf" style="width:${(tV[t]/tT*100).toFixed(1)}%;background:${TC_[t]}"></div></div><span class="fc-bv">${tV[t]} slides</span></div>`).join('');
+  document.getElementById('fc-m').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="fc-c"><div class="fc-ct">Ingresos por mes</div>${mBars}</div><div class="fc-c"><div class="fc-ct">Volumen por tier</div>${tBars}</div></div>`;
+  const ins=[];
+  if(avgG>0){const nx=new Date();nx.setDate(nx.getDate()+avgG);ins.push({l:'Próximo proyecto previsto',t:`Con tu cadencia de ${avgG} días, el siguiente encargo podría entrar aprox. el <strong>${fd(nx.toISOString().slice(0,10))}</strong>.`});}
+  if(tV.A>tV.B+tV.C)ins.push({l:'Oportunidad de upsell',t:'El Tier A representa la mayoría de tus slides. Revisa si esos proyectos justifican Tier B.'});
+  if(top&&cC[top[0]]>projects.length*.4)ins.push({l:'Concentración de cliente',t:`${top[0]} supera el 40% de tus proyectos. Diversificar reduce el riesgo.`});
+  document.getElementById('fc-i').innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:10px">Insights automáticos</div>`+ins.map(i=>`<div class="fc-ins"><div class="fc-insl">${i.l}</div><p>${i.t}</p></div>`).join('');
+}
+
+// ── CLIENTS ──────────────────────────────────────────────
+function renderClients(){
+  const grid=document.getElementById('cl-grid');
+  if(!clients.length){grid.innerHTML='<div style="color:var(--mid);font-size:13px;padding:20px">No hay clientes. Añade uno arriba.</div>';return;}
+  grid.innerHTML=clients.map(c=>{
+    const ps=projects.filter(p=>p.client===c.name&&p.status!=='todo');
+    const total=ps.reduce((a,p)=>a+cb(p),0);
+    const act=ps.filter(p=>['brief','produccion','revision'].includes(p.status)).length;
+    const cts=(c.contacts||[]).map(ct=>`
+      <div class="cl-person">
+        <div class="cl-av">${ct.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+        <div class="cl-pi"><div class="cl-pn">${ct.name}</div><div class="cl-pe">${ct.email||'—'}</div><div class="cl-pr">${ct.role||''}</div></div>
+        ${ct.email?`<button class="cl-btn cl-btn-gm btn-sm" onclick="gmailContact('${ct.email}','${c.name}')">✉</button>`:''}
+      </div>`).join('');
+    const emails=(c.contacts||[]).map(ct=>ct.email).filter(Boolean).join(',');
+    return`<div class="cl-card">
+      <div class="cl-name">${c.name}</div>
+      <div class="cl-sector">${c.sector||'Sin sector'}</div>
+      <div class="cl-stats">
+        <div class="cl-st"><div class="cl-stv">${ps.length}</div><div class="cl-stl">Proyectos</div></div>
+        <div class="cl-st"><div class="cl-stv">${act}</div><div class="cl-stl">Activos</div></div>
+        <div class="cl-st"><div class="cl-stv">${total>0?fe(total).replace(' €',''):'—'}</div><div class="cl-stl">Facturado</div></div>
+      </div>
+      ${cts?`<div class="cl-cts"><div class="cl-ctt">Contactos</div>${cts}</div>`:''}
+      <div class="cl-acts">
+        ${emails?`<button class="cl-btn cl-btn-gm" onclick="gmailClient('${emails}','${c.name}')">✉ Nuevo email</button>`:''}
+        <button class="cl-btn cl-btn-ghost" onclick="openClientMod('${c.id}')">✎ Editar</button>
+        <button class="cl-btn cl-btn-ghost" onclick="delClient('${c.id}')" style="color:var(--red)">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function gmailClient(emails,name){
+  const sub=encodeURIComponent(`Nuevo proyecto — Tobalina Design`);
+  const body=encodeURIComponent(`Hola,\n\nMe pongo en contacto para presentar una propuesta para ${name}.\n\n[Descripción del proyecto]\n\nUn saludo,\n${settings_.name}`);
+  window.open(`https://mail.google.com/mail/?view=cm&to=${emails}&su=${sub}&body=${body}`,'_blank');
+}
+function gmailContact(email,name){gmailClient(email,name);}
+
+function gmailProject(p){
+  const emails=(p.contacts||[]).map(c=>c.email).filter(Boolean).join(',');
+  if(!emails){toast('Sin email de contacto en este proyecto');return;}
+  const base=cb(p),iva_=base*(settings_.iva/100),irpf_=base*(settings_.irpf/100),tot=base+iva_-irpf_;
+  const sub=encodeURIComponent(`${p.invoiceCode||'Proyecto'} — ${p.name}`);
+  const primer=(p.contacts||[])[0]?.name?.split(' ')[0]||'';
+  const body=encodeURIComponent(`Hola ${primer},\n\nAdjunto información del proyecto "${p.name}".\n\n• Base imponible: ${fe(base)}\n• IVA ${settings_.iva}%: ${fe(iva_)}\n• Retención IRPF ${settings_.irpf}%: -${fe(irpf_)}\n• Total a cobrar: ${fe(tot)}\n\nFecha de entrega: ${fd(p.deadline)}\n\nUn saludo,\n${settings_.name}\n${settings_.email}`);
+  window.open(`https://mail.google.com/mail/?view=cm&to=${emails}&su=${sub}&body=${body}`,'_blank');
+}
+
+// ── SETTINGS ─────────────────────────────────────────────
+function loadSettings(){
+  document.getElementById('set-name').value=settings_.name||'';
+  document.getElementById('set-nif').value=settings_.nif||'';
+  document.getElementById('set-addr').value=settings_.address||'';
+  document.getElementById('set-email').value=settings_.email||'';
+  document.getElementById('set-web').value=settings_.web||'';
+  document.getElementById('set-iban').value=settings_.iban||'';
+  document.getElementById('set-irpf').value=settings_.irpf||7;
+  document.getElementById('set-iva').value=settings_.iva||21;
+  document.getElementById('set-plazo').value=settings_.plazo||30;
+  document.getElementById('set-ta').value=settings_.ta||25;
+  document.getElementById('set-tb').value=settings_.tb||75;
+  document.getElementById('set-tc').value=settings_.tc||150;
+  // Update tier labels in modal
+  document.getElementById('ta-lbl').textContent=(settings_.ta||25)+' €/slide';
+  document.getElementById('tb-lbl').textContent=(settings_.tb||75)+' €/slide';
+  document.getElementById('tc-lbl').textContent=(settings_.tc||150)+' €/slide';
+  // Update IRPF/IVA labels in detail
+  document.getElementById('dp-iva-label').textContent=`IVA ${settings_.iva||21}%`;
+  document.getElementById('dp-irpf-label').textContent=`IRPF −${settings_.irpf||7}%`;
+}
+function saveSettings(){
+  settings_.name=document.getElementById('set-name').value;
+  settings_.nif=document.getElementById('set-nif').value;
+  settings_.address=document.getElementById('set-addr').value;
+  settings_.email=document.getElementById('set-email').value;
+  settings_.web=document.getElementById('set-web').value;
+  settings_.iban=document.getElementById('set-iban').value;
+  settings_.irpf=parseFloat(document.getElementById('set-irpf').value)||7;
+  settings_.iva=parseFloat(document.getElementById('set-iva').value)||21;
+  settings_.plazo=parseInt(document.getElementById('set-plazo').value)||30;
+  settings_.ta=parseFloat(document.getElementById('set-ta').value)||25;
+  settings_.tb=parseFloat(document.getElementById('set-tb').value)||75;
+  settings_.tc=parseFloat(document.getElementById('set-tc').value)||150;
+  save();loadSettings();toast('Ajustes guardados ✓');
+}
+['set-save','set-save2','set-save3'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)el.addEventListener('click',saveSettings);
+});
+
+// ── CLIENT MODAL ──────────────────────────────────────────
+function openClientMod(id=null){
+  editCId=id;cContacts=[];
+  document.getElementById('cm-title').textContent=id?'Editar cliente':'Nuevo cliente';
+  if(id){const c=clients.find(x=>x.id===id);document.getElementById('cf-nm').value=c.name;document.getElementById('cf-sec').value=c.sector||'';document.getElementById('cf-no').value=c.notes||'';cContacts=(c.contacts||[]).map(x=>({...x}));}
+  else{['cf-nm','cf-sec','cf-no'].forEach(i=>document.getElementById(i).value='');cContacts=[];}
+  renderCCts();document.getElementById('cov').classList.add('open');
+}
+function closeClientMod(){document.getElementById('cov').classList.remove('open');}
+document.getElementById('cm-close').addEventListener('click',closeClientMod);
+document.getElementById('cm-cancel').addEventListener('click',closeClientMod);
+document.getElementById('btn-add-ccp').addEventListener('click',()=>{cContacts.push({name:'',email:'',role:''});renderCCts();});
+function renderCCts(){
+  document.getElementById('ccf-rows').innerHTML=cContacts.map((c,i)=>`
+    <div class="cp-row">
+      <input class="fi" placeholder="Nombre" value="${c.name||''}" oninput="cContacts[${i}].name=this.value" style="font-size:12px"/>
+      <input class="fi" placeholder="Email" value="${c.email||''}" oninput="cContacts[${i}].email=this.value" style="font-size:12px"/>
+      <input class="fi" placeholder="Cargo" value="${c.role||''}" oninput="cContacts[${i}].role=this.value" style="font-size:12px"/>
+      <button class="btn-rm" onclick="cContacts.splice(${i},1);renderCCts()">✕</button>
+    </div>`).join('');
+}
+document.getElementById('cm-save').addEventListener('click',()=>{
+  const name=document.getElementById('cf-nm').value.trim();
+  if(!name){toast('El nombre es obligatorio');return;}
+  const data={name,sector:document.getElementById('cf-sec').value.trim(),notes:document.getElementById('cf-no').value.trim(),contacts:cContacts.filter(c=>c.name)};
+  if(editCId){Object.assign(clients.find(x=>x.id===editCId),data);toast('Cliente actualizado');}
+  else{clients.push({id:'c'+Date.now(),...data});toast('Cliente añadido ✓');}
+  save();closeClientMod();render();
+});
+function delClient(id){if(!confirm('¿Eliminar este cliente?'))return;clients=clients.filter(x=>x.id!==id);save();render();toast('Eliminado');}
+
+// ── PROJECT MODAL ─────────────────────────────────────────
+function openMod(id=null){
+  editId=id;extras=[];contacts=[];
+  document.getElementById('m-title').textContent=id?'Editar proyecto':'Nuevo proyecto';
+  if(id){
+    const p=projects.find(x=>x.id===id);
+    document.getElementById('f-cl').value=p.client;
+    document.getElementById('f-nm').value=p.name;
+    document.getElementById('f-sa').value=p.slidesA||'';
+    document.getElementById('f-sb').value=p.slidesB||'';
+    document.getElementById('f-sc').value=p.slidesC||'';
+    document.getElementById('f-st').value=p.startDate||p.createdAt||'';
+    document.getElementById('f-dl').value=p.deadline||'';
+    document.getElementById('f-es').value=p.status;
+    document.getElementById('f-no').value=p.notes||'';
+    document.getElementById('f-fi').value=(p.files||[]).join(', ');
+    document.getElementById('f-he').value=p.hoursEst||'';
+    document.getElementById('f-hr').value=p.hoursReal||'';
+    document.getElementById('f-pg').value=p.progress||'';
+    extras=(p.extras||[]).map(e=>({...e}));
+    contacts=(p.contacts||[]).map(c=>({...c}));
+  } else {
+    ['f-cl','f-nm','f-sa','f-sb','f-sc','f-dl','f-no','f-fi','f-he','f-hr','f-pg'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('f-st').value=new Date().toISOString().slice(0,10);
+    document.getElementById('f-es').value='brief';
+    extras=[];contacts=[];
+  }
+  renderExRows();renderCpRows();updPrev();updSch();
+  document.getElementById('mov').classList.add('open');
+  setTimeout(()=>document.getElementById('f-cl').focus(),100);
+}
+function closeMod(){document.getElementById('mov').classList.remove('open');editId=null;}
+document.getElementById('btn-new').addEventListener('click',()=>{
+  if(curView==='clients')openClientMod();
+  else if(curView==='settings'){}
+  else openMod();
+});
+document.getElementById('m-close').addEventListener('click',closeMod);
+document.getElementById('m-cancel').addEventListener('click',closeMod);
+document.getElementById('mov').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMod();});
+
+function renderExRows(){
+  document.getElementById('ex-rows').innerHTML=extras.map((e,i)=>`
+    <div class="ex-row">
+      <input class="fi" placeholder="Concepto extra" value="${e.name||''}" oninput="extras[${i}].name=this.value" style="font-size:12px"/>
+      <input class="fi" placeholder="Ud." type="number" min="1" value="${e.qty||1}" oninput="extras[${i}].qty=this.value;updPrev()" style="font-size:12px"/>
+      <input class="fi" placeholder="€" type="number" min="0" value="${e.price||''}" oninput="extras[${i}].price=this.value;updPrev()" style="font-size:12px"/>
+      <button class="btn-rm" onclick="extras.splice(${i},1);renderExRows();updPrev()">✕</button>
+    </div>`).join('');
+}
+document.getElementById('btn-add-ex').addEventListener('click',()=>{extras.push({name:'',qty:1,price:''});renderExRows();});
+
+function renderCpRows(){
+  document.getElementById('cp-rows').innerHTML=contacts.map((c,i)=>`
+    <div class="cp-row">
+      <input class="fi" placeholder="Nombre" value="${c.name||''}" oninput="contacts[${i}].name=this.value" style="font-size:12px"/>
+      <input class="fi" placeholder="Email" value="${c.email||''}" oninput="contacts[${i}].email=this.value" style="font-size:12px"/>
+      <input class="fi" placeholder="Cargo" value="${c.role||''}" oninput="contacts[${i}].role=this.value" style="font-size:12px"/>
+      <button class="btn-rm" onclick="contacts.splice(${i},1);renderCpRows()">✕</button>
+    </div>`).join('');
+}
+document.getElementById('btn-add-cp').addEventListener('click',()=>{
+  const cl=document.getElementById('f-cl').value.trim();
+  const cli=clients.find(c=>c.name.toLowerCase()===cl.toLowerCase());
+  if(cli&&cli.contacts&&cli.contacts.length){
+    const ex=contacts.map(c=>c.email);
+    const unused=cli.contacts.filter(c=>!ex.includes(c.email));
+    if(unused.length){contacts.push({...unused[0]});renderCpRows();return;}
+  }
+  contacts.push({name:'',email:'',role:''});renderCpRows();
+});
+
+function updPrev(){
+  const ta=settings_.ta||25,tb_=settings_.tb||75,tc_=settings_.tc||150;
+  const sa=parseInt(document.getElementById('f-sa').value)||0;
+  const sb=parseInt(document.getElementById('f-sb').value)||0;
+  const sc=parseInt(document.getElementById('f-sc').value)||0;
+  const ex=extras.reduce((s,e)=>s+(parseFloat(e.price)||0)*(parseInt(e.qty)||1),0);
+  const base=sa*ta+sb*tb_+sc*tc_+ex;
+  const iva_=base*(settings_.iva/100),irpf_=base*(settings_.irpf/100),tot=base+iva_-irpf_;
+  document.getElementById('pp-b').textContent=fe(base);
+  document.getElementById('pp-i').textContent=fe(iva_);
+  document.getElementById('pp-r').textContent='−'+fe(irpf_);
+  document.getElementById('pp-t').textContent=fe(tot);
+  ['a','b','c'].forEach(t=>{const v=parseInt(document.getElementById(`f-s${t}`).value)||0;document.getElementById(`tsb-${t}`).classList.toggle('hv',v>0);});
+  updSch();
+}
+['f-sa','f-sb','f-sc'].forEach(id=>document.getElementById(id).addEventListener('input',updPrev));
+['f-he','f-hr','f-pg','f-dl'].forEach(id=>document.getElementById(id).addEventListener('input',updSch));
+
+function updSch(){
+  const he=parseFloat(document.getElementById('f-he').value)||0;
+  const hr=parseFloat(document.getElementById('f-hr').value)||0;
+  const pg=parseFloat(document.getElementById('f-pg').value)||0;
+  const dl=document.getElementById('f-dl').value;
+  const res=document.getElementById('sch-res');
+  if(!he){res.style.display='none';return;}
+  const sc=calcSch(he,hr,pg,dl);
+  if(!sc){res.style.display='none';return;}
+  const sa=parseInt(document.getElementById('f-sa').value)||0,sb=parseInt(document.getElementById('f-sb').value)||0,scc=parseInt(document.getElementById('f-sc').value)||0;
+  const ex=extras.reduce((s,e)=>s+(parseFloat(e.price)||0)*(parseInt(e.qty)||1),0);
+  const base=sa*(settings_.ta||25)+sb*(settings_.tb||75)+scc*(settings_.tc||150)+ex;
+  const eph=hr>0?(base/hr).toFixed(0):he>0?(base/he).toFixed(0):null;
+  res.style.display='flex';
+  res.innerHTML=`
+    <div class="sr-r"><span class="sr-l">Horas restantes</span><span class="sr-v">${sc.rem.toFixed(1)} h</span></div>
+    <div class="sr-r"><span class="sr-l">Días naturales (2h/día sem · 8h fsem)</span><span class="sr-v">${sc.days}d</span></div>
+    <div class="sr-r"><span class="sr-l">Terminas estimado</span><span class="sr-v ${sc.ok?'':'ac'}">${sc.fin.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})}</span></div>
+    ${eph?`<div class="sr-r"><span class="sr-l">€ / hora</span><span class="sr-v ac">${fe(parseFloat(eph))}</span></div>`:''}
+    ${!sc.ok?`<div class="sr-w">⚠ No llegas al deadline con tu disponibilidad</div>`:''}`;
+}
+
+document.getElementById('m-save').addEventListener('click',()=>{
+  const client=document.getElementById('f-cl').value.trim();
+  const name=document.getElementById('f-nm').value.trim();
+  if(!client||!name){toast('Cliente y nombre son obligatorios');return;}
+  const sa=parseInt(document.getElementById('f-sa').value)||0,sb=parseInt(document.getElementById('f-sb').value)||0,sc=parseInt(document.getElementById('f-sc').value)||0;
+  const startDate=document.getElementById('f-st').value||new Date().toISOString().slice(0,10);
+  const files=document.getElementById('f-fi').value.split(',').map(f=>f.trim()).filter(Boolean);
+  const he=parseFloat(document.getElementById('f-he').value)||0,hr=parseFloat(document.getElementById('f-hr').value)||0,pg=parseFloat(document.getElementById('f-pg').value)||0;
+  const cts=contacts.filter(c=>c.name);
+  if(!clients.find(c=>c.name.toLowerCase()===client.toLowerCase())){clients.push({id:'c'+Date.now(),name:client,sector:'',notes:'',contacts:cts.map(c=>({...c}))});}
+  if(editId){
+    const p=projects.find(x=>x.id===editId);
+    Object.assign(p,{client,name,slidesA:sa,slidesB:sb,slidesC:sc,extras:[...extras],startDate,deadline:document.getElementById('f-dl').value,status:document.getElementById('f-es').value,notes:document.getElementById('f-no').value,files,hoursEst:he,hoursReal:hr,progress:pg,contacts:cts});
+    toast('Proyecto actualizado ✓');
+  } else {
+    const invoiceCode=gi(client);
+    projects.push({id:uid(),client,name,slidesA:sa,slidesB:sb,slidesC:sc,extras:[...extras],startDate,deadline:document.getElementById('f-dl').value,status:document.getElementById('f-es').value,notes:document.getElementById('f-no').value,files,invoiceCode,facturaStatus:null,createdAt:startDate,hoursEst:he,hoursReal:hr,progress:pg,contacts:cts});
+    toast('Proyecto creado ✓');
+  }
+  save();closeMod();render();
+});
+
+// ── DETAIL PANEL ──────────────────────────────────────────
+function openDetail(id){
+  const p=projects.find(x=>x.id===id);if(!p)return;
+  detailId=id;
+  const isTd=p.status==='todo';
+  const base=cb(p),iva_=base*(settings_.iva/100),irpf_=base*(settings_.irpf/100),tot=base+iva_-irpf_;
+  document.getElementById('dp-cl').textContent=p.client;
+  document.getElementById('dp-nm').textContent=p.name;
+  document.getElementById('dp-inv').textContent=p.invoiceCode||'—';
+  document.getElementById('dp-bill-sec').style.display=isTd?'none':'block';
+  document.getElementById('dp-base').textContent=fe(base);
+  document.getElementById('dp-iva').textContent=fe(iva_);
+  document.getElementById('dp-irpf').textContent='−'+fe(irpf_);
+  document.getElementById('dp-tot').textContent=fe(tot);
+  // breakdown
+  const rows=[];
+  if(p.slidesA>0)rows.push(`<div class="dr"><span class="dk"><span class="tb ta">A</span> ${p.slidesA} × ${settings_.ta||25}€</span><span class="dv">${fe(p.slidesA*(settings_.ta||25))}</span></div>`);
+  if(p.slidesB>0)rows.push(`<div class="dr"><span class="dk"><span class="tb tb_">B</span> ${p.slidesB} × ${settings_.tb||75}€</span><span class="dv">${fe(p.slidesB*(settings_.tb||75))}</span></div>`);
+  if(p.slidesC>0)rows.push(`<div class="dr"><span class="dk"><span class="tb tc">C</span> ${p.slidesC} × ${settings_.tc||150}€</span><span class="dv">${fe(p.slidesC*(settings_.tc||150))}</span></div>`);
+  (p.extras||[]).forEach(e=>rows.push(`<div class="dr"><span class="dk">+ ${e.name} ×${e.qty}</span><span class="dv">${fe((parseFloat(e.price)||0)*(parseInt(e.qty)||1))}</span></div>`));
+  document.getElementById('dp-bd').innerHTML=rows.join('');
+  ['emitida','pendiente','cobrada'].forEach(fs=>document.getElementById(`fs-${fs}`).classList.toggle('active',p.facturaStatus===fs));
+  // contacts / gmail
+  const gmSec=document.getElementById('dp-gm-sec');
+  const cts=p.contacts||[];
+  if(cts.length){gmSec.style.display='block';document.getElementById('dp-cts').innerHTML=cts.map(c=>`<div class="dr"><span class="dk">${c.name}${c.role?' · '+c.role:''}</span><span class="dv" style="font-size:11px">${c.email||'—'}</span></div>`).join('');}
+  else gmSec.style.display='none';
+  document.getElementById('dp-st').textContent=fd(p.startDate||p.createdAt);
+  document.getElementById('dp-dl').textContent=fd(p.deadline);
+  document.getElementById('dp-es').innerHTML=`<span class="sp sp-${p.status}">${SL[p.status]}</span>`;
+  // schedule
+  const schSec=document.getElementById('dp-sch-sec');
+  if(p.hoursEst>0&&!isTd){
+    schSec.style.display='block';
+    const sc=calcSch(p.hoursEst,p.hoursReal,p.progress,p.deadline);
+    const eph=p.hoursReal>0?(base/p.hoursReal).toFixed(0):p.hoursEst>0?(base/p.hoursEst).toFixed(0):null;
+    const pct=p.hoursReal>0?Math.min(100,Math.round((p.hoursReal/p.hoursEst)*100)):Math.round(p.progress||0);
+    document.getElementById('dp-sched').innerHTML=`
+      <div class="dr"><span class="dk">Horas est.</span><span class="dv">${p.hoursEst} h</span></div>
+      ${p.hoursReal?`<div class="dr"><span class="dk">Horas reales</span><span class="dv">${p.hoursReal} h</span></div>`:''}
+      <div class="dr"><span class="dk">Avance</span><span class="dv">${pct}%</span></div>
+      ${eph?`<div class="dr"><span class="dk">€ / hora</span><span class="dv" style="color:var(--accent)">${fe(parseFloat(eph))}</span></div>`:''}
+      ${sc?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--light)">
+        <div class="dr"><span class="dk">Días naturales</span><span class="dv">${sc.days}d</span></div>
+        <div class="dr"><span class="dk">Terminas estimado</span><span class="dv" style="color:${sc.ok?'var(--green)':'var(--red)'}">${sc.fin.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})}</span></div>
+        <div style="font-size:9px;margin-top:3px;color:${sc.ok?'var(--green)':'var(--red)'}">${sc.ok?'✓ Margen suficiente':'⚠ No llegas al deadline'}</div>
+      </div>`:''}`;
+  }else schSec.style.display='none';
+  // files
+  const fSec=document.getElementById('dp-f-sec');
+  if(p.files&&p.files.length){fSec.style.display='block';document.getElementById('dp-files').innerHTML=p.files.map(f=>`<span class="c-tag ${ft(f)}">${f}</span>`).join('');}
+  else fSec.style.display='none';
+  document.getElementById('dp-notes').textContent=p.notes||'Sin notas';
+  document.getElementById('dov').classList.add('open');
+}
+function closeDetail(){document.getElementById('dov').classList.remove('open');detailId=null;}
+document.getElementById('dp-close').addEventListener('click',closeDetail);
+document.getElementById('dov').addEventListener('click',e=>{if(e.target===e.currentTarget)closeDetail();});
+['emitida','pendiente','cobrada'].forEach(fs=>{document.getElementById(`fs-${fs}`).addEventListener('click',()=>{const p=projects.find(x=>x.id===detailId);if(!p)return;p.facturaStatus=fs;save();render();openDetail(detailId);toast(`Factura: ${fs}`);});});
+document.getElementById('dp-edit').addEventListener('click',()=>{closeDetail();openMod(detailId);});
+document.getElementById('dp-del').addEventListener('click',()=>{if(!confirm('¿Eliminar este proyecto?'))return;projects=projects.filter(x=>x.id!==detailId);save();closeDetail();render();toast('Eliminado');});
+document.getElementById('dp-gm').addEventListener('click',()=>{const p=projects.find(x=>x.id===detailId);if(p)gmailProject(p);});
+
+// ── PDF EXPORT ────────────────────────────────────────────
+document.getElementById('dp-pdf').addEventListener('click',()=>{
+  const p=projects.find(x=>x.id===detailId);if(!p)return;
+  const base=cb(p),iva_=base*(settings_.iva/100),irpf_=base*(settings_.irpf/100),tot=base+iva_-irpf_;
+  const today=new Date().toLocaleDateString('es-ES');
+  const dueDate=p.deadline?new Date(p.deadline+'T12:00:00').toLocaleDateString('es-ES'):fd(null);
+  const tiers=[];
+  if(p.slidesA>0)tiers.push({label:`Slides — Alineación de marca (Tier A)`,qty:p.slidesA,price:settings_.ta||25});
+  if(p.slidesB>0)tiers.push({label:`Slides — Estructura corporativa (Tier B)`,qty:p.slidesB,price:settings_.tb||75});
+  if(p.slidesC>0)tiers.push({label:`Slides — Alto impacto (Tier C)`,qty:p.slidesC,price:settings_.tc||150});
+  const allLines=[...tiers,...(p.extras||[]).map(e=>({label:e.name,qty:parseInt(e.qty)||1,price:parseFloat(e.price)||0}))];
+  const rows=allLines.map(l=>`<tr><td>${l.label}</td><td class="r">${l.qty}</td><td class="r">${fe(l.price)}</td><td class="r">${fe(l.qty*l.price)}</td></tr>`).join('');
+  const cts=(p.contacts||[]).map(c=>`${c.name}${c.role?' · '+c.role:''}${c.email?' &lt;'+c.email+'&gt;':''}`).join('<br/>');
+  document.getElementById('invoice-print').innerHTML=`
+    <div class="ip-logo">TOBALINA</div>
+    <div class="ip-sub">DESIGN STUDIO</div>
+    <div class="ip-meta">
+      <div>
+        <div class="ip-section-label">Emisor</div>
+        <div class="ip-name">${settings_.name}</div>
+        <div class="ip-line">NIF: ${settings_.nif}</div>
+        <div class="ip-line">${settings_.address}</div>
+        <div class="ip-line">${settings_.email}</div>
+        <br/>
+        <div class="ip-section-label">Cliente</div>
+        <div class="ip-name">${p.client}</div>
+        ${cts?`<div class="ip-line">${cts}</div>`:''}
+      </div>
+      <div class="ip-inv-meta">
+        <div class="ip-inv-label">Factura</div>
+        <div class="ip-inv-val">${p.invoiceCode||'—'}</div>
+        <div class="ip-inv-label">Fecha emisión</div>
+        <div class="ip-inv-val">${today}</div>
+        <div class="ip-inv-label">Vencimiento</div>
+        <div class="ip-inv-val">${dueDate}</div>
+        <div class="ip-inv-label">Entrega del proyecto</div>
+        <div class="ip-inv-val">${fd(p.deadline)}</div>
+      </div>
+    </div>
+    <div class="ip-rule"></div>
+    <table class="ip-table">
+      <thead><tr><th>Concepto</th><th class="r">Ud.</th><th class="r">Precio unit.</th><th class="r">Importe</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="ip-totals">
+      <div class="ip-notes-block">
+        <strong>Forma de pago</strong><br/>Transferencia bancaria<br/>${settings_.iban||'IBAN ES00 0000 0000 0000 0000 0000'}<br/><br/>
+        Plazo: ${settings_.plazo||30} días desde emisión<br/><br/>
+        <em>Retención IRPF ${settings_.irpf||7}% según Art. 101 LIRPF<br/>Inicio actividad &lt;2 años · Comunidad de Madrid</em>
+      </div>
+      <div class="ip-totals-right">
+        <div class="ip-tot-row"><span>Base imponible</span><span>${fe(base)}</span></div>
+        <div class="ip-tot-row"><span>IVA ${settings_.iva||21}%</span><span>${fe(iva_)}</span></div>
+        <div class="ip-tot-row"><span>IRPF −${settings_.irpf||7}%</span><span>−${fe(irpf_)}</span></div>
+        <div class="ip-tot-row total"><span>TOTAL</span><span>${fe(tot)}</span></div>
+      </div>
+    </div>
+    <div class="ip-footer">
+      ${settings_.name} · ${settings_.address} · ${settings_.email} · ${settings_.web||'tobalina.studio'}
+    </div>`;
+  setTimeout(()=>window.print(),150);
+  toast('Abriendo diálogo de impresión → Guardar como PDF');
+});
+
+// ── XLSX EXPORT (CSV format, Excel-compatible) ────────────
+document.getElementById('dp-xl').addEventListener('click',()=>{
+  const p=projects.find(x=>x.id===detailId);if(!p)return;
+  const base=cb(p),iva_=base*(settings_.iva/100),irpf_=base*(settings_.irpf/100),tot=base+iva_-irpf_;
+  const q=s=>`"${String(s||'').replace(/"/g,'""')}"`;
+  const today=new Date().toLocaleDateString('es-ES');
+  const due=p.deadline?new Date(p.deadline+'T12:00:00').toLocaleDateString('es-ES'):'—';
+  const rows=[
+    [q('TOBALINA'),'','','',''],
+    [q('DESIGN STUDIO'),'','','',''],
+    ['','','','',''],
+    [q('EMISOR'),'','',q('N.º Factura'),q(p.invoiceCode||'—')],
+    [q(settings_.name),'','',q('Fecha emisión'),q(today)],
+    [q('NIF: '+settings_.nif),'','',q('Vencimiento'),q(due)],
+    [q(settings_.address),'','',q('Plazo pago'),q((settings_.plazo||30)+' días')],
+    [q(settings_.email),'','','',''],
+    ['','','','',''],
+    [q('CLIENTE'),'','','',''],
+    [q(p.client),'','','',''],
+    ...(p.contacts||[]).slice(0,2).map(c=>[q(`${c.name} · ${c.email||''} · ${c.role||''}`),'','','','']),
+    ['','','','',''],
+    [q('CONCEPTO'),q('TIER'),q('UD.'),q('PRECIO UNIT.'),q('IMPORTE')],
+  ];
+  if(p.slidesA>0)rows.push([q('Slides — Alineación de marca'),q('Tier A'),p.slidesA,settings_.ta||25,(p.slidesA*(settings_.ta||25))]);
+  if(p.slidesB>0)rows.push([q('Slides — Estructura corporativa'),q('Tier B'),p.slidesB,settings_.tb||75,(p.slidesB*(settings_.tb||75))]);
+  if(p.slidesC>0)rows.push([q('Slides — Alto impacto'),q('Tier C'),p.slidesC,settings_.tc||150,(p.slidesC*(settings_.tc||150))]);
+  (p.extras||[]).forEach(e=>rows.push([q(e.name||'Extra'),q('Extra'),parseInt(e.qty)||1,parseFloat(e.price)||0,(parseInt(e.qty)||1)*(parseFloat(e.price)||0)]));
+  rows.push(['','','','',''],
+    ['','','',q('Base imponible'),base],
+    ['','','',q('Descuento (%)'),0],
+    ['','','',q(`IVA (${settings_.iva||21}%)`),iva_],
+    ['','','',q(`IRPF (−${settings_.irpf||7}%)`),irpf_*-1],
+    ['','','',q('TOTAL'),tot],
+    ['','','','',''],
+    [q('FORMA DE PAGO'),'','','',''],
+    [q('Transferencia bancaria'),'','','',''],
+    [q(settings_.iban||'IBAN ES00 0000 0000 0000 0000 0000'),'','','',''],
+    [q(`Retención IRPF ${settings_.irpf||7}% Art.101 LIRPF · Autónoma <2 años · Comunidad de Madrid`),'','','','']
+  );
+  const csv='\uFEFF'+rows.map(r=>r.join(';')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=`${p.invoiceCode||'factura'}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  toast('Descargado — ábrelo en Excel como CSV');
+});
+
+// ── MOBILE ────────────────────────────────────────────────
+document.getElementById('btn-menu').addEventListener('click',()=>{
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sb-ov').classList.toggle('open');
+});
+document.getElementById('sb-ov').addEventListener('click',()=>{
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sb-ov').classList.remove('open');
+});
+
+// ── VIEW SWITCH ───────────────────────────────────────────
+function switchView(v){
+  curView=v;
+  const IDS={kanban:'vk',list:'vl',agenda:'vc',forecast:'vf',clients:'vcl',settings:'vs'};
+  Object.entries(IDS).forEach(([k,id])=>{const el=document.getElementById(id);if(el)el.style.display=k===v?(k==='kanban'?'flex':'block'):'none';});
+  document.querySelectorAll('[data-view]').forEach(el=>el.classList.toggle('active',el.dataset.view===v));
+  document.getElementById('tb-title').textContent=VT[v]||v;
+  document.getElementById('btn-new').style.display=['kanban','list','agenda','clients'].includes(v)?'inline-block':'none';
+  document.getElementById('btn-new').textContent=v==='clients'?'+ Nuevo cliente':'+ Nuevo';
+  if(v==='settings')loadSettings();
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sb-ov').classList.remove('open');
+  render();
+}
+document.querySelectorAll('[data-view]').forEach(el=>el.addEventListener('click',()=>switchView(el.dataset.view)));
+
+// ── RENDER ────────────────────────────────────────────────
+function render(){
+  renderStats();
+  if(curView==='kanban')renderKanban();
+  else if(curView==='list')renderList();
+  else if(curView==='agenda'){if(agendaSub==='cal')renderCal();else renderTL();}
+  else if(curView==='forecast')renderForecast();
+  else if(curView==='clients')renderClients();
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+let _tt;
+function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),2600);}
+
+// ── KEYBOARD ─────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeMod();closeDetail();closeClientMod();}
+  if(e.key==='n'&&!e.target.matches('input,textarea,select'))openMod();
+});
+
+// ── INIT — load from Sheets first, fallback to localStorage ─
+async function initApp(){
+  setSyncBadge('Conectando con Drive…','#6F807E');
+  try{
+    const [p,cl,ic,st]=await Promise.all([
+      gasGet('proyectos'),
+      gasGet('clientes'),
+      gasGet('invoiceCounter'),
+      gasGet('ajustes')
+    ]);
+    if(p)projects=p; else projects=JSON.parse(localStorage.getItem('tbln_p')||'[]');
+    if(cl)clients=cl; else clients=JSON.parse(localStorage.getItem('tbln_cl')||'[]');
+    if(ic)invCtr=ic; else invCtr=JSON.parse(localStorage.getItem('tbln_ic')||'{}');
+    if(st)settings_=Object.assign({name:'Tobalina Design - Beatriz Tobalina González',nif:'05330271K',address:'Calle Tribaldos 38 · 28043 · Madrid, España',email:'hola@tobalina.studio',web:'tobalina.studio',iban:'ES00 0000 0000 0000 0000 0000',irpf:7,iva:21,plazo:30,ta:25,tb:75,tc:150},st);
+    else settings_=Object.assign({name:'Tobalina Design - Beatriz Tobalina González',nif:'05330271K',address:'Calle Tribaldos 38 · 28043 · Madrid, España',email:'hola@tobalina.studio',web:'tobalina.studio',iban:'ES00 0000 0000 0000 0000 0000',irpf:7,iva:21,plazo:30,ta:25,tb:75,tc:150},JSON.parse(localStorage.getItem('tbln_set')||'{}'));
+    if(!projects.length) loadSeedData();
+    setSyncBadge('✓ Conectado','var(--green)');
+  }catch(e){
+    console.warn('Sheets load failed, using localStorage',e);
+    projects=JSON.parse(localStorage.getItem('tbln_p')||'[]');
+    clients=JSON.parse(localStorage.getItem('tbln_cl')||'[]');
+    invCtr=JSON.parse(localStorage.getItem('tbln_ic')||'{}');
+    settings_=Object.assign({name:'Tobalina Design - Beatriz Tobalina González',nif:'05330271K',address:'Calle Tribaldos 38 · 28043 · Madrid, España',email:'hola@tobalina.studio',web:'tobalina.studio',iban:'ES00 0000 0000 0000 0000 0000',irpf:7,iva:21,plazo:30,ta:25,tb:75,tc:150},JSON.parse(localStorage.getItem('tbln_set')||'{}'));
+    if(!projects.length) loadSeedData();
+    setSyncBadge('⚠ Sin conexión — datos locales','#E8A87C');
+  }
+  loadSettings();
+  switchView('kanban');
+}
+initApp();
+</script>
+</body>
+</html>
