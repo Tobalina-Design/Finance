@@ -252,6 +252,13 @@ input,textarea,select{font-family:var(--f);font-size:14px}
 .sr-v.ac{color:var(--accent)}
 .sr-w{font-size:9px;color:var(--accent);margin-top:2px}
 .cp-rows{display:flex;flex-direction:column;gap:5px}
+.cp-checklist{display:flex;flex-direction:column;gap:2px;background:var(--bg);border-radius:var(--r);padding:8px 4px}
+.cp-check-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background .1s}
+.cp-check-row:hover{background:#fff}
+.cp-check-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--dark);cursor:pointer}
+.cp-check-name{font-size:12px;font-weight:600;color:var(--dark)}
+.cp-check-meta{font-size:10px;color:var(--mid)}
+.cp-empty{font-size:11px;color:var(--mid);padding:8px;text-align:center}
 .cp-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:5px;align-items:center}
 
 /* DETAIL PANEL */
@@ -492,10 +499,19 @@ input,textarea,select{font-family:var(--f);font-size:14px}
     <div class="mh"><span class="mh-t" id="m-title">Nuevo proyecto</span><button class="btn-g" id="m-close">✕</button></div>
     <div class="mb">
       <div class="fr">
-        <div class="fg"><label class="fl">Cliente *</label><input class="fi" id="f-cl" placeholder="MAPFRE, SAVILLS…"/></div>
+        <div class="fg">
+          <label class="fl">Cliente *</label>
+          <select class="fs_" id="f-cl-select"></select>
+          <input class="fi" id="f-cl-new" placeholder="Nombre del nuevo cliente" style="display:none;margin-top:6px"/>
+        </div>
         <div class="fg"><label class="fl">Nombre del proyecto *</label><input class="fi" id="f-nm" placeholder="Presentación Q3…"/></div>
       </div>
-      <div class="fg"><label class="fl">Contactos del proyecto</label><div class="cp-rows" id="cp-rows"></div><button class="btn-add-ex" id="btn-add-cp">+ Añadir contacto</button></div>
+      <div class="fg">
+        <label class="fl">Encargado / contactos del proyecto</label>
+        <div class="cp-checklist" id="cp-checklist"></div>
+        <div id="cp-manual-rows" class="cp-rows" style="margin-top:6px"></div>
+        <button class="btn-add-ex" id="btn-add-cp">+ Contacto no listado</button>
+      </div>
       <div class="fg">
         <label class="fl">Slides por tier</label>
         <div class="tsg">
@@ -607,7 +623,7 @@ async function gasGet(table){
   try{
     const r=await fetch(GAS_URL+'?action=get&table='+table);
     const j=await r.json();
-    return j.data?JSON.parse(j.data):null;
+    return (j&&j.data!==undefined)?j.data:null;
   }catch(e){console.warn('gasGet',e);return null;}
 }
 
@@ -1024,9 +1040,10 @@ function delClient(id){if(!confirm('¿Eliminar este cliente?'))return;clients=cl
 function openMod(id=null){
   editId=id;extras=[];contacts=[];
   document.getElementById('m-title').textContent=id?'Editar proyecto':'Nuevo proyecto';
+  renderClientSelect();
   if(id){
     const p=projects.find(x=>x.id===id);
-    document.getElementById('f-cl').value=p.client;
+    setClientSelectValue(p.client);
     document.getElementById('f-nm').value=p.name;
     document.getElementById('f-sa').value=p.slidesA||'';
     document.getElementById('f-sb').value=p.slidesB||'';
@@ -1042,14 +1059,16 @@ function openMod(id=null){
     extras=(p.extras||[]).map(e=>({...e}));
     contacts=(p.contacts||[]).map(c=>({...c}));
   } else {
-    ['f-cl','f-nm','f-sa','f-sb','f-sc','f-dl','f-no','f-fi','f-he','f-hr','f-pg'].forEach(i=>document.getElementById(i).value='');
+    ['f-nm','f-sa','f-sb','f-sc','f-dl','f-no','f-fi','f-he','f-hr','f-pg'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('f-cl-select').value='';
+    document.getElementById('f-cl-new').style.display='none';
+    document.getElementById('f-cl-new').value='';
     document.getElementById('f-st').value=new Date().toISOString().slice(0,10);
     document.getElementById('f-es').value='brief';
     extras=[];contacts=[];
   }
-  renderExRows();renderCpRows();updPrev();updSch();
+  renderExRows();renderContactChecklist();updPrev();updSch();
   document.getElementById('mov').classList.add('open');
-  setTimeout(()=>document.getElementById('f-cl').focus(),100);
 }
 function closeMod(){document.getElementById('mov').classList.remove('open');editId=null;}
 document.getElementById('btn-new').addEventListener('click',()=>{
@@ -1061,35 +1080,90 @@ document.getElementById('m-close').addEventListener('click',closeMod);
 document.getElementById('m-cancel').addEventListener('click',closeMod);
 document.getElementById('mov').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMod();});
 
-function renderExRows(){
-  document.getElementById('ex-rows').innerHTML=extras.map((e,i)=>`
-    <div class="ex-row">
-      <input class="fi" placeholder="Concepto extra" value="${e.name||''}" oninput="extras[${i}].name=this.value" style="font-size:12px"/>
-      <input class="fi" placeholder="Ud." type="number" min="1" value="${e.qty||1}" oninput="extras[${i}].qty=this.value;updPrev()" style="font-size:12px"/>
-      <input class="fi" placeholder="€" type="number" min="0" value="${e.price||''}" oninput="extras[${i}].price=this.value;updPrev()" style="font-size:12px"/>
-      <button class="btn-rm" onclick="extras.splice(${i},1);renderExRows();updPrev()">✕</button>
-    </div>`).join('');
+// ── CLIENT SELECT (dropdown from DB) ──────────────────────
+function renderClientSelect(){
+  const sel=document.getElementById('f-cl-select');
+  const sorted=[...clients].sort((a,b)=>a.name.localeCompare(b.name));
+  sel.innerHTML='<option value="">— Selecciona cliente —</option>'+
+    sorted.map(c=>`<option value="${c.name}">${c.name}</option>`).join('')+
+    '<option value="__new__">+ Nuevo cliente…</option>';
 }
-document.getElementById('btn-add-ex').addEventListener('click',()=>{extras.push({name:'',qty:1,price:''});renderExRows();});
+function setClientSelectValue(clientName){
+  const sel=document.getElementById('f-cl-select');
+  const exists=[...sel.options].some(o=>o.value===clientName);
+  if(exists){
+    sel.value=clientName;
+    document.getElementById('f-cl-new').style.display='none';
+  } else {
+    sel.value='__new__';
+    document.getElementById('f-cl-new').style.display='block';
+    document.getElementById('f-cl-new').value=clientName;
+  }
+}
+function getCurrentClientName(){
+  const sel=document.getElementById('f-cl-select');
+  if(sel.value==='__new__') return document.getElementById('f-cl-new').value.trim();
+  return sel.value;
+}
+document.getElementById('f-cl-select').addEventListener('change',()=>{
+  const sel=document.getElementById('f-cl-select');
+  const newInput=document.getElementById('f-cl-new');
+  if(sel.value==='__new__'){
+    newInput.style.display='block';
+    newInput.value='';
+    setTimeout(()=>newInput.focus(),50);
+  } else {
+    newInput.style.display='none';
+  }
+  renderContactChecklist();
+});
+document.getElementById('f-cl-new').addEventListener('input',renderContactChecklist);
 
-function renderCpRows(){
-  document.getElementById('cp-rows').innerHTML=contacts.map((c,i)=>`
+// ── CONTACT CHECKLIST (pick from client's saved contacts) ─
+function renderContactChecklist(){
+  const clientName=getCurrentClientName();
+  const cli=clients.find(c=>c.name.toLowerCase()===(clientName||'').toLowerCase());
+  const box=document.getElementById('cp-checklist');
+  const savedContacts=(cli&&cli.contacts)||[];
+
+  if(!savedContacts.length){
+    box.innerHTML=`<div class="cp-empty">${clientName?'Este cliente no tiene contactos guardados aún':'Selecciona un cliente para ver sus contactos'}</div>`;
+  } else {
+    box.innerHTML=savedContacts.map((c,i)=>{
+      const checked=contacts.some(x=>x.email&&x.email===c.email);
+      return `<label class="cp-check-row">
+        <input type="checkbox" ${checked?'checked':''} onchange="toggleContact(${i})"/>
+        <div><div class="cp-check-name">${c.name}${c.role?' — '+c.role:''}</div><div class="cp-check-meta">${c.email||''}</div></div>
+      </label>`;
+    }).join('');
+  }
+  renderManualContactRows();
+}
+function toggleContact(idx){
+  const clientName=getCurrentClientName();
+  const cli=clients.find(c=>c.name.toLowerCase()===(clientName||'').toLowerCase());
+  const c=cli.contacts[idx];
+  const existingIdx=contacts.findIndex(x=>x.email&&x.email===c.email);
+  if(existingIdx>=0) contacts.splice(existingIdx,1);
+  else contacts.push({...c});
+}
+function renderManualContactRows(){
+  // only show contacts NOT matching any saved client contact (i.e. manually added / one-off)
+  const clientName=getCurrentClientName();
+  const cli=clients.find(c=>c.name.toLowerCase()===(clientName||'').toLowerCase());
+  const savedEmails=((cli&&cli.contacts)||[]).map(c=>c.email);
+  const manual=contacts.map((c,i)=>({...c,_i:i})).filter(c=>!c.email||!savedEmails.includes(c.email));
+  document.getElementById('cp-manual-rows').innerHTML=manual.map(c=>`
     <div class="cp-row">
-      <input class="fi" placeholder="Nombre" value="${c.name||''}" oninput="contacts[${i}].name=this.value" style="font-size:12px"/>
-      <input class="fi" placeholder="Email" value="${c.email||''}" oninput="contacts[${i}].email=this.value" style="font-size:12px"/>
-      <input class="fi" placeholder="Cargo" value="${c.role||''}" oninput="contacts[${i}].role=this.value" style="font-size:12px"/>
-      <button class="btn-rm" onclick="contacts.splice(${i},1);renderCpRows()">✕</button>
+      <input class="fi" placeholder="Nombre" value="${c.name||''}" oninput="contacts[${c._i}].name=this.value" style="font-size:12px"/>
+      <input class="fi" placeholder="Email" value="${c.email||''}" oninput="contacts[${c._i}].email=this.value" style="font-size:12px"/>
+      <input class="fi" placeholder="Cargo" value="${c.role||''}" oninput="contacts[${c._i}].role=this.value" style="font-size:12px"/>
+      <button class="btn-rm" onclick="contacts.splice(${c._i},1);renderContactChecklist()">✕</button>
     </div>`).join('');
 }
 document.getElementById('btn-add-cp').addEventListener('click',()=>{
-  const cl=document.getElementById('f-cl').value.trim();
-  const cli=clients.find(c=>c.name.toLowerCase()===cl.toLowerCase());
-  if(cli&&cli.contacts&&cli.contacts.length){
-    const ex=contacts.map(c=>c.email);
-    const unused=cli.contacts.filter(c=>!ex.includes(c.email));
-    if(unused.length){contacts.push({...unused[0]});renderCpRows();return;}
-  }
-  contacts.push({name:'',email:'',role:''});renderCpRows();
+  contacts.push({name:'',email:'',role:''});
+  renderManualContactRows();
 });
 
 function updPrev(){
@@ -1109,6 +1183,17 @@ function updPrev(){
 }
 ['f-sa','f-sb','f-sc'].forEach(id=>document.getElementById(id).addEventListener('input',updPrev));
 ['f-he','f-hr','f-pg','f-dl'].forEach(id=>document.getElementById(id).addEventListener('input',updSch));
+
+function renderExRows(){
+  document.getElementById('ex-rows').innerHTML=extras.map((e,i)=>`
+    <div class="ex-row">
+      <input class="fi" placeholder="Concepto extra" value="${e.name||''}" oninput="extras[${i}].name=this.value" style="font-size:12px"/>
+      <input class="fi" placeholder="Ud." type="number" min="1" value="${e.qty||1}" oninput="extras[${i}].qty=this.value;updPrev()" style="font-size:12px"/>
+      <input class="fi" placeholder="€" type="number" min="0" value="${e.price||''}" oninput="extras[${i}].price=this.value;updPrev()" style="font-size:12px"/>
+      <button class="btn-rm" onclick="extras.splice(${i},1);renderExRows();updPrev()">✕</button>
+    </div>`).join('');
+}
+document.getElementById('btn-add-ex').addEventListener('click',()=>{extras.push({name:'',qty:1,price:''});renderExRows();});
 
 function updSch(){
   const he=parseFloat(document.getElementById('f-he').value)||0;
@@ -1133,7 +1218,7 @@ function updSch(){
 }
 
 document.getElementById('m-save').addEventListener('click',()=>{
-  const client=document.getElementById('f-cl').value.trim();
+  const client=getCurrentClientName();
   const name=document.getElementById('f-nm').value.trim();
   if(!client||!name){toast('Cliente y nombre son obligatorios');return;}
   const sa=parseInt(document.getElementById('f-sa').value)||0,sb=parseInt(document.getElementById('f-sb').value)||0,sc=parseInt(document.getElementById('f-sc').value)||0;
@@ -1141,7 +1226,17 @@ document.getElementById('m-save').addEventListener('click',()=>{
   const files=document.getElementById('f-fi').value.split(',').map(f=>f.trim()).filter(Boolean);
   const he=parseFloat(document.getElementById('f-he').value)||0,hr=parseFloat(document.getElementById('f-hr').value)||0,pg=parseFloat(document.getElementById('f-pg').value)||0;
   const cts=contacts.filter(c=>c.name);
-  if(!clients.find(c=>c.name.toLowerCase()===client.toLowerCase())){clients.push({id:'c'+Date.now(),name:client,sector:'',notes:'',contacts:cts.map(c=>({...c}))});}
+  const existingClient=clients.find(c=>c.name.toLowerCase()===client.toLowerCase());
+  if(!existingClient){
+    clients.push({id:'c'+Date.now(),name:client,sector:'',notes:'',contacts:cts.map(c=>({...c}))});
+  } else {
+    // merge any brand-new manual contacts into the client's saved list too
+    cts.forEach(c=>{
+      if(c.email&&!existingClient.contacts.some(x=>x.email===c.email)){
+        existingClient.contacts.push({...c});
+      }
+    });
+  }
   if(editId){
     const p=projects.find(x=>x.id===editId);
     Object.assign(p,{client,name,slidesA:sa,slidesB:sb,slidesC:sc,extras:[...extras],startDate,deadline:document.getElementById('f-dl').value,status:document.getElementById('f-es').value,notes:document.getElementById('f-no').value,files,hoursEst:he,hoursReal:hr,progress:pg,contacts:cts});
