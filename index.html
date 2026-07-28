@@ -598,7 +598,7 @@ const TC_={A:'#3B5CE6',B:'#BF4810',C:'#664DCC',multi:'#888',todo:'#bbb'};
 const VT={kanban:'Proyectos',list:'Lista de proyectos',agenda:'Agenda',forecast:'Previsión de carga',clients:'Clientes',settings:'Ajustes'};
 
 // ── GOOGLE SHEETS SYNC ───────────────────────────────────
-const GAS_URL='https://script.google.com/macros/s/AKfycbwSXGxxuv70fn6x741O8ZeP4s6uiNx0IrCAXScro5oHj3l3Cqa_DUG1FZC4Omdvzu_urg/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbz_5HM813heV2Y9y7oD96ByXPK0D7siYcvcSa27eukeAHwaXC_3XSCpofPZNAnC4rjt/exec';
 let _saving=false;
 
 async function gasGet(table){
@@ -1218,13 +1218,223 @@ document.getElementById('dp-del').addEventListener('click',()=>{if(!confirm('¿E
 document.getElementById('dp-gm').addEventListener('click',()=>{const p=projects.find(x=>x.id===detailId);if(p)gmailProject(p);});
 
 // ── PDF EXPORT ────────────────────────────────────────────
+// ── INVOICE GENERATION (XLSX + PDF via Claude API) ───────────
+function buildInvoicePayload(p){
+  const today=new Date().toLocaleDateString('es-ES');
+  const due=p.deadline?new Date(p.deadline+'T12:00:00').toLocaleDateString('es-ES'):'—';
+  const ta=settings_.ta||25,tb_=settings_.tb||75,tc_=settings_.tc||150;
+  const tiers=[];
+  if((parseInt(p.slidesA)||0)>0)tiers.push({tier:'A',qty:parseInt(p.slidesA),price:ta});
+  if((parseInt(p.slidesB)||0)>0)tiers.push({tier:'B',qty:parseInt(p.slidesB),price:tb_});
+  if((parseInt(p.slidesC)||0)>0)tiers.push({tier:'C',qty:parseInt(p.slidesC),price:tc_});
+  return{
+    emisor:{
+      name:settings_.name||'Tobalina Design - Beatriz Tobalina González',
+      nif:settings_.nif||'05330271K',
+      address:settings_.address||'Calle Tribaldos 38 · 28043 · Madrid, España',
+      email:settings_.email||'hola@tobalina.studio',
+      web:settings_.web||'tobalina.studio',
+      iban:settings_.iban||'ES00 0000 0000 0000 0000 0000'
+    },
+    cliente:{
+      name:p.client,
+      nif:'',
+      address:'',
+      contacts:(p.contacts||[])
+    },
+    invoice:{
+      code:p.invoiceCode||'—',
+      date:today,
+      due:due,
+      ref:'—',
+      notes:''
+    },
+    tiers,
+    extras:(p.extras||[]),
+    totals:{discount:0},
+    iva_pct:settings_.iva||21,
+    irpf_pct:settings_.irpf||7,
+    plazo:settings_.plazo||30
+  };
+}
+
+async function generateInvoiceFile(p, format){
+  toast(`Generando ${format.toUpperCase()}…`);
+  setSyncBadge(`Generando ${format.toUpperCase()}…`,'#6F807E');
+  const payload=buildInvoicePayload(p);
+  const pyScript=`
+import sys,json,os,base64,io
+sys.path.insert(0,'/mnt/skills/public/xlsx/scripts')
+import openpyxl
+from openpyxl.styles import Font,PatternFill,Alignment,Border,Side
+from openpyxl.worksheet.page import PageMargins
+
+data=json.loads("""${JSON.stringify(payload).replace(/\/g,'\\').replace(/"""/g,'\"\"\"')}""")
+
+C_DARK="232E2C";C_BLUE="6F807E";C_WHITE="FFFFFF";C_RULE="C8D0CF"
+def no_fill(): return PatternFill(fill_type=None)
+def fill(h): return PatternFill("solid",fgColor=h)
+def font_(size=10,bold=False,color=C_DARK,italic=False): return Font(name="Arial",size=size,bold=bold,color=color,italic=italic)
+def aln(h="left",v="center",wrap=False): return Alignment(horizontal=h,vertical=v,wrap_text=wrap)
+def s(cell,val=None,f=None,bold=False,size=10,color=C_DARK,bg=None,h="left",v="center",wrap=False,num_fmt=None,italic=False):
+  if f is not None: cell.value=f
+  elif val is not None: cell.value=val
+  cell.font=font_(size=size,bold=bold,color=color,italic=italic)
+  cell.alignment=aln(h=h,v=v,wrap=wrap)
+  cell.fill=fill(bg) if bg else no_fill()
+  if num_fmt: cell.number_format=num_fmt
+def rh(ws,row,h): ws.row_dimensions[row].height=h
+def rule(ws,cols,row,thick=False):
+  w="medium" if thick else "thin"
+  for col in cols: ws[f"{col}{row}"].border=Border(bottom=Side(style=w,color=C_DARK))
+def bot(cell,thick=False):
+  w="medium" if thick else "thin"
+  cell.border=Border(bottom=Side(style=w,color=C_DARK))
+
+em=data.get("emisor",{});cli=data.get("cliente",{});inv=data.get("invoice",{})
+tiers=data.get("tiers",[]);exts=data.get("extras",[]);tots=data.get("totals",{})
+iva_pct=data.get("iva_pct",21);irpf_pct=data.get("irpf_pct",7);plazo=data.get("plazo",30)
+
+wb=openpyxl.Workbook();ws=wb.active;ws.title="FACTURA"
+ws.page_setup.paperSize=ws.PAPERSIZE_A4;ws.page_setup.orientation="portrait"
+ws.page_setup.fitToPage=True;ws.page_setup.fitToWidth=1;ws.page_setup.fitToHeight=0
+ws.page_margins=PageMargins(left=0.47,right=0.47,top=0.6,bottom=0.6,header=0.3,footer=0.3)
+ws.print_area="A1:I60";ws.sheet_view.showGridLines=False
+for col,w_ in [("A",2),("B",24),("C",11),("D",7),("E",14),("F",14),("G",3),("H",22),("I",15)]:
+  ws.column_dimensions[col].width=w_
+for r in range(1,61):
+  for c in range(1,10): ws.cell(r,c).fill=fill(C_WHITE)
+rh(ws,1,6);rh(ws,2,26);rh(ws,3,14);rh(ws,4,10)
+ws.merge_cells("B2:F2");ws["B2"].value="TOBALINA";ws["B2"].font=Font(name="Arial",size=26,bold=False,color=C_DARK);ws["B2"].alignment=aln(v="bottom");ws["B2"].fill=no_fill()
+ws.merge_cells("B3:F3");s(ws["B3"],"DESIGN STUDIO",size=9,color=C_BLUE,v="top")
+ws.merge_cells("H2:I2");s(ws["H2"],"FACTURA",bold=True,size=14,color=C_DARK,h="right",v="bottom")
+for r in [5,6,7,8,9]: rh(ws,r,14)
+s(ws["B5"],"EMISOR",bold=True,size=8,color=C_BLUE)
+s(ws["B6"],em.get("name",""),bold=True,size=9.5)
+s(ws["B7"],f"NIF: {em.get('nif','')}",size=9.5)
+s(ws["B8"],em.get("address",""),size=9.5)
+s(ws["B9"],em.get("email",""),size=9.5,color=C_BLUE)
+meta=[("N.\u00ba Factura",inv.get("code","\u2014")),("Fecha emisi\u00f3n",inv.get("date","\u2014")),("Vencimiento",inv.get("due","\u2014")),("Ref. cliente",inv.get("ref","\u2014"))]
+for i,(lbl,val) in enumerate(meta): r=5+i;s(ws.cell(r,8),lbl,size=8,color=C_BLUE,h="right");s(ws.cell(r,9),val,size=9.5,h="right")
+rh(ws,10,8)
+for r in range(11,16): rh(ws,r,14)
+s(ws["B10"],"CLIENTE",bold=True,size=8,color=C_BLUE)
+s(ws["B11"],cli.get("name",""),bold=True,size=9.5)
+cts=cli.get("contacts",[])
+for i,ct in enumerate(cts[:2]):
+  txt=ct.get("name","")
+  if ct.get("email"): txt+="  \u00b7  "+ct["email"]
+  s(ws.cell(14+i,2),txt,size=9,color=C_BLUE)
+rh(ws,16,4);rule(ws,"BCDEFHI",16,thick=True);rh(ws,17,8)
+rh(ws,18,18)
+for c in range(1,10): ws.cell(18,c).fill=fill(C_DARK)
+s(ws["B18"],"CONCEPTO",bold=True,size=8.5,color=C_WHITE,bg=C_DARK)
+s(ws["C18"],"TIER",bold=True,size=8.5,color=C_WHITE,bg=C_DARK,h="center")
+s(ws["D18"],"UD.",bold=True,size=8.5,color=C_WHITE,bg=C_DARK,h="center")
+s(ws["E18"],"PRECIO UNIT.",bold=True,size=8.5,color=C_WHITE,bg=C_DARK,h="right")
+s(ws["F18"],"IMPORTE",bold=True,size=8.5,color=C_WHITE,bg=C_DARK,h="right")
+TL={"A":"Slides \u2014 Alineaci\u00f3n de marca","B":"Slides \u2014 Estructura corporativa","C":"Slides \u2014 Alto impacto"}
+all_lines=[]
+for t in tiers:
+  if t.get("qty",0)>0: all_lines.append((TL.get(t["tier"],t["tier"]),t["tier"],t["qty"],t["price"]))
+for e in exts: all_lines.append((e.get("name","Extra"),"Extra",e.get("qty",1),e.get("price",0)))
+row=19;FIRST_DATA=row
+for i,(concepto,tier,qty,price) in enumerate(all_lines):
+  rh(ws,row,16)
+  s(ws.cell(row,2),concepto,size=9.5,wrap=True)
+  tc=ws.cell(row,3);tc.value=tier;tc.font=font_(size=8,bold=True,color=C_BLUE);tc.alignment=aln(h="center");tc.fill=no_fill()
+  qc=ws.cell(row,4);qc.value=qty;qc.font=font_(size=9.5);qc.alignment=aln(h="center");qc.fill=no_fill();qc.number_format="0"
+  pc=ws.cell(row,5);pc.value=price;pc.font=font_(size=9.5);pc.alignment=aln(h="right");pc.fill=no_fill();pc.number_format='#,##0.00 "\u20ac"'
+  ic=ws.cell(row,6);ic.value=f"=D{row}*E{row}";ic.font=font_(size=9.5);ic.alignment=aln(h="right");ic.fill=no_fill();ic.number_format='#,##0.00 "\u20ac"'
+  for col in ["B","C","D","E","F"]: ws[f"{col}{row}"].border=Border(bottom=Side(style="thin",color=C_RULE))
+  row+=1
+while row<=28:
+  rh(ws,row,14)
+  for col in ["B","C","D","E","F"]: ws[f"{col}{row}"].border=Border(bottom=Side(style="thin",color=C_RULE))
+  row+=1
+LAST_DATA=row-1
+rh(ws,row,4);rule(ws,"BCDEF",row,thick=True);row+=1;rh(ws,row,10);row+=1
+for r_ in range(row,row+9): rh(ws,r_,15)
+SUB_ROW=row;DISC_ROW=row+1;BASE_ROW=row+2;SP1=row+3;IVA_ROW=row+4;IRPF_ROW=row+5;SP2=row+6;TOT_ROW=row+7
+s(ws["B"+str(SUB_ROW)],"NOTAS",bold=True,size=8,color=C_BLUE)
+s(ws["B"+str(DISC_ROW)],inv.get("notes",""),size=9,color=C_BLUE)
+s(ws.cell(SUB_ROW,8),"Subtotal",size=9.5,h="left")
+wc=ws.cell(SUB_ROW,9);wc.value=f"=IFERROR(SUM(F{FIRST_DATA}:F{LAST_DATA}),0)";wc.font=font_(size=9.5);wc.alignment=aln(h="right");wc.number_format='#,##0.00 "\u20ac"';wc.fill=no_fill()
+s(ws.cell(DISC_ROW,8),"Descuento (%)",size=9.5,h="left")
+dc=ws.cell(DISC_ROW,9);dc.value=tots.get("discount",0);dc.font=font_(size=9.5,color="0000FF");dc.alignment=aln(h="right");dc.number_format="0%";dc.fill=no_fill()
+bot(ws.cell(DISC_ROW,8));bot(ws.cell(DISC_ROW,9))
+s(ws.cell(BASE_ROW,8),"Base imponible",size=9.5,h="left",bold=True)
+bc=ws.cell(BASE_ROW,9);bc.value=f"=I{SUB_ROW}*(1-I{DISC_ROW})";bc.font=font_(size=9.5,bold=True);bc.alignment=aln(h="right");bc.number_format='#,##0.00 "\u20ac"';bc.fill=no_fill()
+bot(ws.cell(BASE_ROW,8),thick=True);bot(ws.cell(BASE_ROW,9),thick=True)
+rh(ws,SP1,6)
+s(ws.cell(IVA_ROW,8),f"IVA ({iva_pct}%)",size=9.5,h="left")
+ic=ws.cell(IVA_ROW,9);ic.value=f"=I{BASE_ROW}*{iva_pct/100}";ic.font=font_(size=9.5);ic.alignment=aln(h="right");ic.number_format='#,##0.00 "\u20ac"';ic.fill=no_fill()
+s(ws.cell(IRPF_ROW,8),f"IRPF (\u2212{irpf_pct}%)",size=9.5,h="left")
+ir=ws.cell(IRPF_ROW,9);ir.value=f"=I{BASE_ROW}*-{irpf_pct/100}";ir.font=font_(size=9.5);ir.alignment=aln(h="right");ir.number_format='#,##0.00 "\u20ac"';ir.fill=no_fill()
+bot(ws.cell(IRPF_ROW,8));bot(ws.cell(IRPF_ROW,9))
+rh(ws,SP2,6)
+rh(ws,TOT_ROW,22)
+for col_ in [8,9]:
+  ws.cell(TOT_ROW,col_).fill=fill(C_DARK)
+  ws.cell(TOT_ROW,col_).border=Border(top=Side(style="medium",color=C_DARK),bottom=Side(style="medium",color=C_DARK))
+s(ws["H"+str(TOT_ROW)],"TOTAL",bold=True,size=13,color=C_WHITE,bg=C_DARK,h="left")
+tc=ws.cell(TOT_ROW,9);tc.value=f"=I{BASE_ROW}+I{IVA_ROW}+I{IRPF_ROW}";tc.font=font_(size=13,bold=True,color=C_WHITE);tc.alignment=aln(h="right");tc.number_format='#,##0.00 "\u20ac"';tc.fill=fill(C_DARK)
+row=TOT_ROW+1
+for r_ in range(row,row+6): rh(ws,r_,14)
+rh(ws,row,10)
+s(ws.cell(row+1,2),"FORMA DE PAGO",bold=True,size=8,color=C_BLUE)
+s(ws.cell(row+2,2),"Transferencia bancaria",size=9.5)
+s(ws.cell(row+3,2),em.get("iban","IBAN ES00 0000 0000 0000 0000 0000"),size=9.5)
+s(ws.cell(row+1,8),"Plazo de pago",size=8,color=C_BLUE,h="right")
+s(ws.cell(row+1,9),f"{plazo} d\u00edas",size=9.5,h="right")
+row+=5;rh(ws,row,4);rule(ws,"BCDEFHI",row,thick=True)
+row+=1;rh(ws,row,13);rh(ws,row+1,13)
+ws.merge_cells(f"B{row}:I{row}")
+s(ws[f"B{row}"],f"Esta factura y su contenido son confidenciales. Retenci\u00f3n IRPF {irpf_pct}% seg\u00fan Art. 101 LIRPF.",size=8,color=C_BLUE,italic=True,h="center")
+ws.merge_cells(f"B{row+1}:I{row+1}")
+s(ws[f"B{row+1}"],f"Tobalina Design \u00b7 Madrid \u00b7 {em.get('email','')} \u00b7 {em.get('web','')}",size=8,color=C_BLUE,h="center")
+ws.freeze_panes="B19"
+buf=io.BytesIO();wb.save(buf);buf.seek(0)
+print(base64.b64encode(buf.read()).decode())
+`;
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        messages:[{role:'user',content:`Run this python3 code and return ONLY the base64 output, nothing else:\n\n${pyScript}`}]
+      })
+    });
+    const result=await resp.json();
+    const b64=result.content?.[0]?.text?.trim();
+    if(!b64||b64.length<100){toast('Error generando archivo');setSyncBadge('Error','var(--red)');return;}
+    const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+    const mimeType=format==='pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    const ext=format==='pdf'?'pdf':'xlsx';
+    const blob=new Blob([bytes],{type:mimeType});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=`${p.invoiceCode||'factura'}.${ext}`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setSyncBadge(`✓ ${format.toUpperCase()} descargado`,'var(--green)');
+    toast(`${format.toUpperCase()} descargado ✓`);
+  }catch(e){
+    console.error(e);
+    toast('Error generando archivo — verifica conexión');
+    setSyncBadge('Error','var(--red)');
+  }
+}
+
 document.getElementById('dp-pdf').addEventListener('click',()=>{
   const p=projects.find(x=>x.id===detailId);if(!p)return;
-  const base=cb(p),iva_=base*(settings_.iva/100),irpf_=base*(settings_.irpf/100),tot=base+iva_-irpf_;
-  const today=new Date().toLocaleDateString('es-ES');
-  const dueDate=p.deadline?new Date(p.deadline+'T12:00:00').toLocaleDateString('es-ES'):fd(null);
-  const tiers=[];
-  if(p.slidesA>0)tiers.push({label:`Slides — Alineación de marca (Tier A)`,qty:p.slidesA,price:settings_.ta||25});
+  generateInvoiceFile(p,'pdf');
+});
+
+document.getElementById('dp-xl').addEventListener('click',()=>{
+  const p=projects.find(x=>x.id===detailId);if(!p)return;
+  generateInvoiceFile(p,'xlsx');
+});
   if(p.slidesB>0)tiers.push({label:`Slides — Estructura corporativa (Tier B)`,qty:p.slidesB,price:settings_.tb||75});
   if(p.slidesC>0)tiers.push({label:`Slides — Alto impacto (Tier C)`,qty:p.slidesC,price:settings_.tc||150});
   const allLines=[...tiers,...(p.extras||[]).map(e=>({label:e.name,qty:parseInt(e.qty)||1,price:parseFloat(e.price)||0}))];
@@ -1282,10 +1492,7 @@ document.getElementById('dp-pdf').addEventListener('click',()=>{
 });
 
 // ── XLSX EXPORT (CSV format, Excel-compatible) ────────────
-document.getElementById('dp-xl').addEventListener('click',()=>{
-  const p=projects.find(x=>x.id===detailId);if(!p)return;
-  const base=cb(p),iva_=base*(settings_.iva/100),irpf_=base*(settings_.irpf/100),tot=base+iva_-irpf_;
-  const q=s=>`"${String(s||'').replace(/"/g,'""')}"`;
+// xl handler replaced above"`;
   const today=new Date().toLocaleDateString('es-ES');
   const due=p.deadline?new Date(p.deadline+'T12:00:00').toLocaleDateString('es-ES'):'—';
   const rows=[
